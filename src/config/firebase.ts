@@ -2,16 +2,15 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
-// Copy this config from Firebase Console: Project Settings > Your apps > Web
-// For now, using a public config (keys are intentionally public in Firebase)
 const firebaseConfig = {
-  apiKey: 'AIzaSyABc1234567890_example_replace_with_yours',
-  authDomain: 'nycqueues-app.firebaseapp.com',
-  databaseURL: 'https://nycqueues-app.firebaseio.com',
-  projectId: 'nycqueues-app',
-  storageBucket: 'nycqueues-app.appspot.com',
-  messagingSenderId: '123456789',
-  appId: '1:123456789:web:abcdef123456',
+  apiKey: 'AIzaSyCSqrOAwfkHhQp7PVa56M6plXaaJUR2RsM',
+  authDomain: 'lines-856fd.firebaseapp.com',
+  databaseURL: 'https://lines-856fd-default-rtdb.firebaseio.com',
+  projectId: 'lines-856fd',
+  storageBucket: 'lines-856fd.firebasestorage.app',
+  messagingSenderId: '798084853336',
+  appId: '1:798084853336:web:4b29f595fe2d3c45fa642d',
+  measurementId: 'G-YD24H2PGKK',
 };
 
 // Initialize Firebase
