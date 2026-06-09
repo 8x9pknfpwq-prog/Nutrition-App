@@ -47,7 +47,7 @@ app.post('/api/analyze-body', async (req, res) => {
     };
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       messages: [
         {
@@ -111,7 +111,7 @@ app.post('/api/analyze-food', async (req, res) => {
     }
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       messages: [
         {
