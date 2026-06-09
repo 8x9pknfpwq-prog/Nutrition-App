@@ -493,9 +493,13 @@ function Step3({ photo, analyzing, analysis, analysisError, handlePhotoChange, a
       )}
 
       {analysisError && (
-        <div className="flex gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
+        <div className="flex gap-2 text-sm bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-700">
           <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-          <span>{analysisError}</span>
+          <span>
+            {analysisError.includes('authentication_error') || analysisError.includes('ANTHROPIC_API_KEY') || analysisError.includes('401')
+              ? 'AI analysis not available yet — your calorie targets have been calculated from your measurements instead.'
+              : analysisError}
+          </span>
         </div>
       )}
 

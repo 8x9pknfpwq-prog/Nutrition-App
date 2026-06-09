@@ -186,12 +186,30 @@ function PhotoMode({ onBack }) {
             <div className="flex gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
               <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
               <div>
-                <p>{error}</p>
-                <button onClick={() => runAnalysis(photo)} className="text-red-700 font-medium mt-1 underline text-xs">
-                  Try again
-                </button>
+                <p>{isApiKeyError(error) ? 'AI scanning not set up yet — fill in the nutrition details manually below.' : error}</p>
+                {!isApiKeyError(error) && (
+                  <button onClick={() => runAnalysis(photo)} className="text-red-700 font-medium mt-1 underline text-xs">
+                    Try again
+                  </button>
+                )}
               </div>
             </div>
+          )}
+
+          {error && isApiKeyError(error) && (
+            <NutritionForm form={form} onChange={(k, v) => setForm(f => ({ ...f, [k]: v }))} nameRequired />
+          )}
+
+          {error && isApiKeyError(error) && form.name && form.calories && (
+            saved ? (
+              <div className="flex items-center justify-center gap-2 text-primary-600 py-3">
+                <CheckCircle size={20} /> <span className="font-semibold">Saved!</span>
+              </div>
+            ) : (
+              <button onClick={saveEntry} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3.5 rounded-xl transition-colors">
+                Add to Log
+              </button>
+            )
           )}
 
           {result && !analyzing && (
@@ -347,8 +365,16 @@ function NutritionForm({ form, onChange, nameRequired }) {
   );
 }
 
+function isApiKeyError(msg) {
+  return msg && (
+    msg.includes('authentication_error') ||
+    msg.includes('invalid x-key') ||
+    msg.includes('ANTHROPIC_API_KEY') ||
+    msg.includes('401')
+  );
+}
+
 // Thumbnail helper
 function createThumbnail(dataUrl) {
-  // Return the full dataUrl; it's already compressed
   return dataUrl;
 }
