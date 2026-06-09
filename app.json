@@ -22,7 +22,6 @@
       }
     },
     "web": {
-      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -34,9 +33,6 @@
           "image": "./assets/images/splash-icon.png"
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }

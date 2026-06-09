@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, query, limitToLast } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { db } from '@/config/firebase';
 import { Bar, QueueStatus } from '@/types';
 
@@ -29,7 +29,6 @@ export function useBars() {
           setLoading(false);
         }
       );
-
       return () => unsubscribe();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -47,7 +46,6 @@ export function useQueueStatus(barId: string) {
 
   useEffect(() => {
     if (!barId) return;
-
     try {
       const statusRef = ref(db, `queue_status/${barId}`);
       const unsubscribe = onValue(
@@ -66,7 +64,6 @@ export function useQueueStatus(barId: string) {
           setLoading(false);
         }
       );
-
       return () => unsubscribe();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

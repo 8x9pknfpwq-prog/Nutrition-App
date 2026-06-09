@@ -1,13 +1,10 @@
-import { useBars } from '@/hooks/useQueues';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Spacing } from '@/constants/theme';
-import { FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useBars } from '@/hooks/useQueues';
 
-const getCrowdColor = (crowdLevel?: string) => {
-  switch (crowdLevel) {
+const getCrowdColor = (level?: string) => {
+  switch (level) {
     case 'empty': return '#4CAF50';
     case 'moderate': return '#FFC107';
     case 'busy': return '#FF9800';
@@ -16,169 +13,160 @@ const getCrowdColor = (crowdLevel?: string) => {
   }
 };
 
-function BarCard({ bar, queueStatus }: any) {
-  const router = useRouter();
-
-  return (
-    <TouchableOpacity
-      onPress={() => router.push(`/bar/${bar.id}`)}
-      activeOpacity={0.7}
-    >
-      <ThemedView style={styles.barCard}>
-        <ThemedView style={styles.barHeader}>
-          <ThemedView>
-            <ThemedText type="subtitle" style={styles.barName}>{bar.name}</ThemedText>
-            <ThemedText type="small" style={styles.barType}>{bar.type}</ThemedText>
-          </ThemedView>
-          <ThemedView
-            style={[
-              styles.crowdBadge,
-              { backgroundColor: getCrowdColor(queueStatus?.crowdLevel) }
-            ]}
-          >
-            <ThemedText style={styles.crowdText}>
-              {queueStatus?.waitTimeMinutes || 0}m
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-
-        <ThemedText type="small" style={styles.barAddress} numberOfLines={1}>
-          {bar.address}
-        </ThemedText>
-
-        {queueStatus && (
-          <ThemedView style={styles.crowdInfo}>
-            <ThemedText type="small">
-              {queueStatus.crowdLevel || 'no data'} • {queueStatus.userCount || 0} reports
-            </ThemedText>
-          </ThemedView>
-        )}
-      </ThemedView>
-    </TouchableOpacity>
-  );
-}
-
 export default function HomeScreen() {
   const { bars, loading, error } = useBars();
+  const router = useRouter();
 
   if (loading) {
     return (
-      <ThemedView style={styles.container}>
+      <View style={styles.center}>
         <ActivityIndicator size="large" />
-      </ThemedView>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">NYC Lines</ThemedText>
-          <ThemedText type="small" style={styles.subtitle}>
-            See where the crowd is
-          </ThemedText>
-        </ThemedView>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>NYC Lines</Text>
+        <Text style={styles.subtitle}>See where the crowd is</Text>
+      </View>
 
-        {error && (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
-          </ThemedView>
-        )}
+      {error && (
+        <View style={styles.error}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+      )}
 
-        {bars.length === 0 && !loading ? (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText type="subtitle">No bars found</ThemedText>
-            <ThemedText type="small">Check back soon!</ThemedText>
-          </ThemedView>
-        ) : (
-          <FlatList
-            data={bars}
-            renderItem={({ item }) => <BarCard bar={item} queueStatus={null} />}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </SafeAreaView>
-    </ThemedView>
+      {bars.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>No bars found</Text>
+          <Text style={styles.emptySubtext}>Check back soon!</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={bars}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => router.push(`/bar/${item.id}`)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.cardName}>{item.name}</Text>
+                    <Text style={styles.cardType}>{item.type}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: getCrowdColor() },
+                    ]}
+                  >
+                    <Text style={styles.badgeText}>0m</Text>
+                  </View>
+                </View>
+                <Text style={styles.cardAddress} numberOfLines={1}>
+                  {item.address}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.two,
-  },
-  header: {
-    marginBottom: Spacing.four,
-  },
-  subtitle: {
-    marginTop: Spacing.one,
-    opacity: 0.7,
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    gap: Spacing.two,
-  },
-  barCard: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    marginBottom: Spacing.two,
-  },
-  barHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.two,
-  },
-  barName: {
-    marginBottom: Spacing.one,
-  },
-  barType: {
-    opacity: 0.6,
-    textTransform: 'capitalize',
-  },
-  barAddress: {
-    opacity: 0.7,
-    marginBottom: Spacing.two,
-  },
-  crowdBadge: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.one,
-    minWidth: 50,
-    alignItems: 'center',
-  },
-  crowdText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  crowdInfo: {
-    opacity: 0.6,
-  },
-  errorContainer: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    borderRadius: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  errorText: {
-    color: '#F44336',
-  },
-  emptyContainer: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.two,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  error: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    margin: 16,
+    borderRadius: 8,
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#666',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  card: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cardType: {
+    fontSize: 12,
+    color: '#666',
+    textTransform: 'capitalize',
+  },
+  cardAddress: {
+    fontSize: 12,
+    color: '#999',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });
