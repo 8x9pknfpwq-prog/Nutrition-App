@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "dependencies": {
     "expo": "~52.0.0",
-    "expo-asset": "~10.0.13",
     "expo-constants": "~17.0.3",
     "expo-device": "~7.0.1",
     "expo-font": "~13.0.1",
