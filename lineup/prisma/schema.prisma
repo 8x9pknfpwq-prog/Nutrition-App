@@ -1,0 +1,72 @@
+// LineUp — Prisma schema (PostgreSQL)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  avatarInitial String // first letter of username, colored on the client
+  createdAt     DateTime @default(now())
+
+  reports       Report[]
+  friendsFrom   Friendship[]         @relation("FriendFrom")
+  friendsTo     Friendship[]         @relation("FriendTo")
+  notifications FriendNotification[]
+}
+
+model Bar {
+  id        String @id @default(uuid())
+  name      String
+  address   String
+  latitude  Float
+  longitude Float
+  rating    Float
+  distance  Float // stored in miles for display
+
+  reports Report[]
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  userId    String
+  barId     String
+  waitMin   Int // reported wait in minutes
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  bar  Bar  @relation(fields: [barId], references: [id])
+
+  @@index([barId, createdAt])
+}
+
+model Friendship {
+  id         String   @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  status     String // "pending" | "accepted"
+  createdAt  DateTime @default(now())
+
+  from User @relation("FriendFrom", fields: [fromUserId], references: [id])
+  to   User @relation("FriendTo", fields: [toUserId], references: [id])
+
+  @@unique([fromUserId, toUserId])
+}
+
+model FriendNotification {
+  id        String   @id @default(uuid())
+  userId    String
+  barId     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
