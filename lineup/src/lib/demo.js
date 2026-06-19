@@ -1,0 +1,327 @@
+// Static demo backend — runs entirely in the browser so the app can be
+// published to GitHub Pages with no server or database.
+//
+// Enabled when the app is built with VITE_DEMO=true. It mirrors the shape of
+// the real REST API (src/lib/api.js) and Socket.io events, seeded with the same
+// NYC bars and demo users as prisma/seed.js. A lightweight "live simulator"
+// periodically posts reports and friend check-ins so the real-time features are
+// visible on a static host.
+//
+// Note: mutations (your reports / friend actions) live for the session and
+// reset on a full page reload; your login persists via localStorage.
+
+export const DEMO = import.meta.env.VITE_DEMO === 'true';
+
+const SESSION_KEY = 'nyc_lines_demo_session';
+
+// --- helpers -------------------------------------------------------------
+const uid = () => Math.random().toString(36).slice(2, 10);
+const minsAgo = (m) => new Date(Date.now() - m * 60 * 1000);
+function apiError(message, status = 400) {
+  const e = new Error(message);
+  e.status = status;
+  return e;
+}
+
+// --- seed data (stable ids so sessions survive reloads) ------------------
+const BARS = [
+  { id: 'bar_wren', name: 'The Wren', address: '64 E 1st St', latitude: 40.72335, longitude: -73.99056, rating: 4.5, distance: 0.2 },
+  { id: 'bar_pouring', name: 'Pouring Ribbons', address: '225 Avenue B', latitude: 40.72705, longitude: -73.97874, rating: 4.6, distance: 0.6 },
+  { id: 'bar_deathco', name: 'Death & Co', address: '433 E 6th St', latitude: 40.72627, longitude: -73.98372, rating: 4.7, distance: 0.4 },
+  { id: 'bar_amor', name: 'Amor y Amargo', address: '443 E 6th St', latitude: 40.72637, longitude: -73.98347, rating: 4.4, distance: 0.4 },
+  { id: 'bar_rueb', name: 'Rue B', address: '188 Avenue B', latitude: 40.72563, longitude: -73.97897, rating: 4.3, distance: 0.6 },
+  { id: 'bar_pdt', name: "Please Don't Tell", address: '113 St Marks Pl', latitude: 40.72732, longitude: -73.98463, rating: 4.6, distance: 0.5 },
+  { id: 'bar_angels', name: "Angel's Share", address: '8 Stuyvesant St', latitude: 40.72967, longitude: -73.98893, rating: 4.5, distance: 0.6 },
+  { id: 'bar_attaboy', name: 'Attaboy', address: '134 Eldridge St', latitude: 40.71903, longitude: -73.99124, rating: 4.7, distance: 0.7 },
+  { id: 'bar_purple', name: 'Mr. Purple', address: '180 Orchard St', latitude: 40.72122, longitude: -73.98825, rating: 4.2, distance: 0.5 },
+  { id: 'bar_wayland', name: 'The Wayland', address: '700 E 9th St', latitude: 40.72595, longitude: -73.97763, rating: 4.4, distance: 0.7 },
+  { id: 'bar_niagara', name: 'Niagara', address: '112 Avenue A', latitude: 40.72588, longitude: -73.98392, rating: 4.1, distance: 0.4 },
+  { id: 'bar_berlin', name: 'Berlin', address: '25 Avenue A', latitude: 40.72268, longitude: -73.98742, rating: 4.2, distance: 0.3 },
+  { id: 'bar_boiler', name: 'Boilermaker', address: '13 First Ave', latitude: 40.72402, longitude: -73.98826, rating: 4.0, distance: 0.3 },
+  { id: 'bar_goto', name: 'Bar Goto', address: '245 Eldridge St', latitude: 40.72236, longitude: -73.98968, rating: 4.5, distance: 0.4 },
+  { id: 'bar_tenbells', name: 'Ten Bells', address: '247 Broome St', latitude: 40.71803, longitude: -73.99069, rating: 4.4, distance: 0.8 },
+];
+
+const USERS = [
+  { id: 'u_maya', email: 'maya@lineup.app', username: 'maya', password: 'password123', avatarInitial: 'M' },
+  { id: 'u_leo', email: 'leo@lineup.app', username: 'leo', password: 'password123', avatarInitial: 'L' },
+  { id: 'u_sara', email: 'sara@lineup.app', username: 'sara', password: 'password123', avatarInitial: 'S' },
+  { id: 'u_devin', email: 'devin@lineup.app', username: 'devin', password: 'password123', avatarInitial: 'D' },
+];
+
+// [barId, [[waitMin, minutesAgo], ...]]
+const REPORT_PLAN = [
+  ['bar_wren', [[5, 4], [8, 20], [6, 55]]],
+  ['bar_deathco', [[40, 6], [45, 18], [35, 50], [50, 80]]],
+  ['bar_pouring', [[18, 10], [22, 35]]],
+  ['bar_pdt', [[60, 8], [55, 25]]],
+  ['bar_attaboy', [[30, 12], [25, 40], [35, 70]]],
+  ['bar_niagara', [[3, 9]]],
+  ['bar_purple', [[12, 15], [9, 45]]],
+  ['bar_berlin', [[0, 7], [5, 33]]],
+];
+
+// Fresh in-memory state, re-anchored to "now" on every load.
+function buildState() {
+  const reports = [];
+  let i = 0;
+  for (const [barId, entries] of REPORT_PLAN) {
+    for (const [waitMin, ago] of entries) {
+      reports.push({ id: uid(), barId, userId: USERS[i % USERS.length].id, waitMin, createdAt: minsAgo(ago) });
+      i++;
+    }
+  }
+  return {
+    bars: BARS.map((b) => ({ ...b })),
+    users: USERS.map((u) => ({ ...u })),
+    reports,
+    friendships: [
+      { id: uid(), fromUserId: 'u_maya', toUserId: 'u_leo', status: 'accepted' },
+      { id: uid(), fromUserId: 'u_maya', toUserId: 'u_sara', status: 'accepted' },
+      { id: uid(), fromUserId: 'u_devin', toUserId: 'u_maya', status: 'pending' },
+    ],
+    notifications: [
+      { id: uid(), userId: 'u_leo', barId: 'bar_wren', createdAt: minsAgo(4) },
+      { id: uid(), userId: 'u_sara', barId: 'bar_deathco', createdAt: minsAgo(12) },
+    ],
+  };
+}
+
+const db = buildState();
+let sessionUserId = localStorage.getItem(SESSION_KEY) || null;
+
+// --- wait-time algorithm (mirrors server/utils/waittime.js) --------------
+function computeWait(reports, now = Date.now()) {
+  const weighted = [];
+  for (const r of reports) {
+    const ageMin = (now - new Date(r.createdAt).getTime()) / 60000;
+    if (ageMin < 0 || ageMin > 90) continue;
+    weighted.push({ waitMin: r.waitMin, weight: ageMin < 30 ? 2 : 1 });
+  }
+  const reportCount = weighted.length;
+  if (reportCount === 0) return { waitMin: null, reportCount: 0, confidence: 'low' };
+  weighted.sort((a, b) => a.waitMin - b.waitMin);
+  const total = weighted.reduce((s, x) => s + x.weight, 0);
+  const half = total / 2;
+  let cum = 0;
+  let waitMin = weighted[weighted.length - 1].waitMin;
+  for (let i = 0; i < weighted.length; i++) {
+    cum += weighted[i].weight;
+    if (cum > half) { waitMin = weighted[i].waitMin; break; }
+    if (cum === half) {
+      const next = weighted[i + 1] ?? weighted[i];
+      waitMin = Math.round((weighted[i].waitMin + next.waitMin) / 2);
+      break;
+    }
+  }
+  const confidence = reportCount >= 4 ? 'high' : reportCount >= 2 ? 'medium' : 'low';
+  return { waitMin, reportCount, confidence };
+}
+
+const reportsForBar = (barId) => db.reports.filter((r) => r.barId === barId);
+const userById = (id) => db.users.find((u) => u.id === id);
+const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, createdAt: u.createdAt || new Date() });
+
+function acceptedFriendIds(userId) {
+  return db.friendships
+    .filter((f) => f.status === 'accepted' && (f.fromUserId === userId || f.toUserId === userId))
+    .map((f) => (f.fromUserId === userId ? f.toUserId : f.fromUserId));
+}
+
+function recentCheckins(sinceMin = 90) {
+  const cutoff = Date.now() - sinceMin * 60 * 1000;
+  return db.notifications
+    .filter((n) => new Date(n.createdAt).getTime() >= cutoff)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+// --- demo socket (tiny event emitter + live simulator) -------------------
+class DemoSocket {
+  constructor() {
+    this.handlers = {};
+    this.timer = null;
+  }
+  on(event, cb) {
+    (this.handlers[event] ||= []).push(cb);
+  }
+  off(event, cb) {
+    this.handlers[event] = (this.handlers[event] || []).filter((h) => h !== cb);
+  }
+  emit(event) {
+    // join_map / leave_map etc. — no-op for the client→server direction.
+    if (event === 'join_map') this.startSimulator();
+  }
+  _dispatch(event, payload) {
+    (this.handlers[event] || []).forEach((h) => h(payload));
+  }
+  startSimulator() {
+    if (this.timer) return;
+    let tick = 0;
+    this.timer = setInterval(() => {
+      tick++;
+      // Add a fresh report to a random bar and broadcast the new wait.
+      const bar = db.bars[Math.floor(Math.random() * db.bars.length)];
+      const reporter = db.users[Math.floor(Math.random() * db.users.length)];
+      const waitMin = [0, 5, 10, 15, 20, 30, 40, 55][Math.floor(Math.random() * 8)];
+      db.reports.push({ id: uid(), barId: bar.id, userId: reporter.id, waitMin, createdAt: new Date() });
+      const w = computeWait(reportsForBar(bar.id));
+      this._dispatch('wait_updated', { barId: bar.id, waitMin: w.waitMin, reportCount: w.reportCount, confidence: w.confidence });
+
+      // Every ~3rd tick, a friend of the current user "checks in" (toast).
+      if (tick % 3 === 0 && sessionUserId) {
+        const friendIds = acceptedFriendIds(sessionUserId);
+        if (friendIds.length) {
+          const friend = userById(friendIds[Math.floor(Math.random() * friendIds.length)]);
+          const cbar = db.bars[Math.floor(Math.random() * db.bars.length)];
+          db.notifications.unshift({ id: uid(), userId: friend.id, barId: cbar.id, createdAt: new Date() });
+          this._dispatch('friend_checkin', {
+            userId: friend.id, username: friend.username, avatarInitial: friend.avatarInitial,
+            barId: cbar.id, barName: cbar.name,
+          });
+        }
+      }
+    }, 9000);
+  }
+  disconnect() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.handlers = {};
+  }
+}
+
+export const demoSocket = new DemoSocket();
+
+// --- demo API (mirrors src/lib/api.js) -----------------------------------
+export const demoApi = {
+  async signup({ email, username, password }) {
+    if (!email || !username || !password) throw apiError('email, username and password are required');
+    if (password.length < 6) throw apiError('Password must be at least 6 characters');
+    const e = email.toLowerCase();
+    if (db.users.some((u) => u.email === e)) throw apiError('That email is already taken', 409);
+    if (db.users.some((u) => u.username === username)) throw apiError('That username is already taken', 409);
+    const user = { id: uid(), email: e, username, password, avatarInitial: username[0].toUpperCase(), createdAt: new Date() };
+    db.users.push(user);
+    sessionUserId = user.id;
+    localStorage.setItem(SESSION_KEY, user.id);
+    return { user: publicUser(user) };
+  },
+  async login({ email, password }) {
+    const u = db.users.find((x) => x.email === (email || '').toLowerCase());
+    if (!u || u.password !== password) throw apiError('Invalid email or password', 401);
+    sessionUserId = u.id;
+    localStorage.setItem(SESSION_KEY, u.id);
+    return { user: publicUser(u) };
+  },
+  async logout() {
+    sessionUserId = null;
+    localStorage.removeItem(SESSION_KEY);
+    demoSocket.disconnect();
+    return { ok: true };
+  },
+  async me() {
+    const u = sessionUserId && userById(sessionUserId);
+    if (!u) throw apiError('Not authenticated', 401);
+    return { user: publicUser(u) };
+  },
+  async bars() {
+    const checkins = recentCheckins();
+    const byBar = new Map();
+    for (const c of checkins) {
+      const u = userById(c.userId);
+      if (!byBar.has(c.barId)) byBar.set(c.barId, []);
+      byBar.get(c.barId).push({ userId: u.id, username: u.username, avatarInitial: u.avatarInitial, at: c.createdAt });
+    }
+    const bars = db.bars.map((b) => ({ ...b, ...computeWait(reportsForBar(b.id)), checkins: byBar.get(b.id) || [] }));
+    return { bars };
+  },
+  async bar(id) {
+    const b = db.bars.find((x) => x.id === id);
+    if (!b) throw apiError('Bar not found', 404);
+    const reports = reportsForBar(id)
+      .sort((a, b2) => new Date(b2.createdAt) - new Date(a.createdAt))
+      .slice(0, 20)
+      .map((r) => { const u = userById(r.userId); return { id: r.id, waitMin: r.waitMin, createdAt: r.createdAt, username: u.username, avatarInitial: u.avatarInitial }; });
+    return { bar: { ...b, ...computeWait(reportsForBar(id)), reports } };
+  },
+  async waittime(id) {
+    return computeWait(reportsForBar(id));
+  },
+  async report({ barId, waitMin }) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const b = db.bars.find((x) => x.id === barId);
+    if (!b) throw apiError('Bar not found', 404);
+    const report = { id: uid(), barId, userId: sessionUserId, waitMin: Math.round(Number(waitMin)), createdAt: new Date() };
+    db.reports.push(report);
+    const wait = computeWait(reportsForBar(barId));
+    demoSocket._dispatch('wait_updated', { barId, waitMin: wait.waitMin, reportCount: wait.reportCount, confidence: wait.confidence });
+    return { report: { id: report.id, barId, waitMin: report.waitMin }, wait };
+  },
+  async friends() {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const ids = acceptedFriendIds(sessionUserId);
+    const friends = ids.map((id) => {
+      const u = userById(id);
+      const last = recentCheckins(24 * 60).find((n) => n.userId === id);
+      const bar = last ? db.bars.find((b) => b.id === last.barId) : null;
+      return {
+        id: u.id, username: u.username, avatarInitial: u.avatarInitial,
+        lastBar: bar ? { id: bar.id, name: bar.name, latitude: bar.latitude, longitude: bar.longitude } : null,
+        lastCheckinAt: last ? last.createdAt : null,
+      };
+    });
+    return { friends };
+  },
+  async pending() {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const pending = db.friendships
+      .filter((f) => f.toUserId === sessionUserId && f.status === 'pending')
+      .map((f) => { const u = userById(f.fromUserId); return { id: f.id, createdAt: f.createdAt || new Date(), from: { id: u.id, username: u.username, avatarInitial: u.avatarInitial } }; });
+    return { pending };
+  },
+  async requestFriend(toUserId) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    if (toUserId === sessionUserId) throw apiError("You can't friend yourself");
+    const exists = db.friendships.some(
+      (f) => (f.fromUserId === sessionUserId && f.toUserId === toUserId) || (f.fromUserId === toUserId && f.toUserId === sessionUserId)
+    );
+    if (exists) throw apiError('A friend request already exists', 409);
+    const friendship = { id: uid(), fromUserId: sessionUserId, toUserId, status: 'pending', createdAt: new Date() };
+    db.friendships.push(friendship);
+    return { friendship };
+  },
+  async acceptFriend(id) {
+    const f = db.friendships.find((x) => x.id === id);
+    if (!f) throw apiError('Request not found', 404);
+    if (f.toUserId !== sessionUserId) throw apiError('Only the recipient can accept this request', 403);
+    f.status = 'accepted';
+    return { friendship: f };
+  },
+  async notifyFriends(barId) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const bar = db.bars.find((b) => b.id === barId);
+    if (!bar) throw apiError('Bar not found', 404);
+    db.notifications.unshift({ id: uid(), userId: sessionUserId, barId, createdAt: new Date() });
+    const ids = acceptedFriendIds(sessionUserId);
+    return { ok: true, notified: ids.length };
+  },
+  async searchUsers(q) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const term = (q || '').toLowerCase().trim();
+    if (!term) return { users: [] };
+    const matches = db.users.filter((u) => u.id !== sessionUserId && u.username.toLowerCase().includes(term)).slice(0, 10);
+    const statusFor = (otherId) => {
+      const f = db.friendships.find(
+        (x) => (x.fromUserId === sessionUserId && x.toUserId === otherId) || (x.fromUserId === otherId && x.toUserId === sessionUserId)
+      );
+      if (!f) return 'none';
+      if (f.status === 'accepted') return 'friends';
+      return f.fromUserId === sessionUserId ? 'requested' : 'incoming';
+    };
+    return { users: matches.map((u) => ({ id: u.id, username: u.username, avatarInitial: u.avatarInitial, friendStatus: statusFor(u.id) })) };
+  },
+  async myStats() {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const checkIns = db.reports.filter((r) => r.userId === sessionUserId).length;
+    return { checkIns, friends: acceptedFriendIds(sessionUserId).length };
+  },
+};

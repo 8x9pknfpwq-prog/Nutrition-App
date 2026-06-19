@@ -33,6 +33,24 @@ shows where people are checking in.
 | Database  | PostgreSQL via Prisma ORM                          |
 | Auth      | JWT (httpOnly cookies), bcrypt password hashing   |
 
+## Live demo (GitHub Pages)
+
+A **static demo build** runs the whole app in the browser — no server or
+database. Seed data is baked in, auth/reports/friends are mocked in-memory, and
+a small simulator emits live `wait_updated` / `friend_checkin` events so the
+real-time UI still animates.
+
+- Build it locally: `VITE_DEMO=true npm run build && npm run preview`
+- It's published automatically by `.github/workflows/deploy-demo.yml` to the
+  `gh-pages` branch on every push.
+
+**One-time setup:** in the repo, go to **Settings → Pages → Source: "Deploy
+from a branch"** and choose **`gh-pages` / `(root)`**. The demo then lives at
+`https://<owner>.github.io/<repo>/` (e.g. `https://8x9pknfpwq-prog.github.io/Nutrition-App/`).
+
+> Demo mode notes: it uses the schematic fallback map (no Mapbox token needed),
+> routing is hash-based, and your reports/friend actions reset on a full reload.
+
 ## Getting started
 
 ```bash

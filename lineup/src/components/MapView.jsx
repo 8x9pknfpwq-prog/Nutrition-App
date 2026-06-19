@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { waitColor, waitLabel, avatarColor } from '../lib/wait.js';
+import { DEMO } from '../lib/demo.js';
 
 const NYC = { lng: -73.9942, lat: 40.7282, zoom: 14 };
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -54,9 +55,11 @@ function FallbackMap({ bars, friends, onSelectBar }) {
           backgroundSize: '46px 46px',
         }}
       />
-      <div className="absolute left-3 top-3 rounded-lg bg-white/80 px-2 py-1 text-[10px] font-semibold text-gray-500">
-        Set VITE_MAPBOX_TOKEN for a live map
-      </div>
+      {!DEMO && (
+        <div className="absolute left-3 top-3 rounded-lg bg-white/80 px-2 py-1 text-[10px] font-semibold text-gray-500">
+          Set VITE_MAPBOX_TOKEN for a live map
+        </div>
+      )}
       {bars.map((b) => {
         const friend = b.checkins?.[0];
         return (

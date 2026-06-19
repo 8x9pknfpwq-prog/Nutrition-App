@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
+import { DEMO } from '../lib/demo.js';
 
 export default function Auth() {
   const { login, signup } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
-  const [email, setEmail] = useState('');
+  // Prefill the demo account so the published demo is one click to enter.
+  const [email, setEmail] = useState(DEMO ? 'maya@lineup.app' : '');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(DEMO ? 'password123' : '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -31,6 +33,11 @@ export default function Auth() {
       <div className="mb-8 flex flex-col items-center text-center">
         <NYCLinesLogo variant="light" height={56} />
         <p className="mt-3 text-sm text-gray-500">Real-time bar wait times, by the crowd.</p>
+        {DEMO && (
+          <span className="mt-3 rounded-full bg-ink/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            Live demo · sample NYC data
+          </span>
+        )}
       </div>
 
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-card">

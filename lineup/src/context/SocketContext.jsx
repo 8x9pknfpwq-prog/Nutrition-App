@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
+import { DEMO, demoSocket } from '../lib/demo.js';
 
 const SocketContext = createContext(null);
 
@@ -18,6 +19,17 @@ export function SocketProvider({ children }) {
         setSocket(null);
       }
       return;
+    }
+
+    // Demo builds use the in-browser simulated socket.
+    if (DEMO) {
+      socketRef.current = demoSocket;
+      setSocket(demoSocket);
+      return () => {
+        demoSocket.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      };
     }
 
     const s = io('/', { withCredentials: true });

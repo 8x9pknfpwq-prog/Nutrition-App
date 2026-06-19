@@ -1,4 +1,6 @@
 // Tiny fetch wrapper. All requests send cookies (httpOnly JWT) and parse JSON.
+import { DEMO, demoApi } from './demo.js';
+
 async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
@@ -22,7 +24,8 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
-export const api = {
+// In demo builds (VITE_DEMO=true) the entire API is served in-browser.
+const realApi = {
   // auth
   signup: (body) => request('/auth/signup', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
@@ -48,3 +51,5 @@ export const api = {
   searchUsers: (q) => request(`/users/search?q=${encodeURIComponent(q)}`),
   myStats: () => request('/users/me/stats'),
 };
+
+export const api = DEMO ? demoApi : realApi;
