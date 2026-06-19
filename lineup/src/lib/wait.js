@@ -5,9 +5,9 @@
 //   red    30+ min
 
 export const COLORS = {
-  green: '#1FA463',
-  amber: '#E8902B',
-  red: '#E03B3B',
+  green: '#4CAF50',
+  amber: '#F5A623',
+  red: '#E53935',
   gray: '#9A968D',
 };
 

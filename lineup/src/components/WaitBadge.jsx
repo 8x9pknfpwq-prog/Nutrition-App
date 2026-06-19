@@ -6,7 +6,7 @@ export default function WaitBadge({ waitMin, solid = false, className = '' }) {
   if (solid) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold text-white ${c.bg} ${className}`}
+        className={`wait-time inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold text-white ${c.bg} ${className}`}
       >
         {waitLabel(waitMin)}
       </span>
@@ -14,7 +14,7 @@ export default function WaitBadge({ waitMin, solid = false, className = '' }) {
   }
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${c.soft} ${c.text} ${className}`}
+      className={`wait-time inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${c.soft} ${c.text} ${className}`}
     >
       {waitLabel(waitMin)}
     </span>

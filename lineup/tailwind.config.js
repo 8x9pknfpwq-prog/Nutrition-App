@@ -4,17 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // LineUp palette — clean, minimal, light
-        canvas: '#F5F4F1', // off-white background
-        ink: '#1A1A1A', // dark charcoal text
+        // NYC Lines palette — warm sand, near-black ink, signal dots
+        canvas: '#F5F2EC', // app background (warm sand)
+        ink: '#1A1A18', // near-black text
+        tile: '#D4C9B0', // khaki icon tile
+        darktile: '#1A1A18', // dark variant tile
+        muted: '#8A8070', // muted label
         wait: {
-          green: '#1FA463', // 0–10 min
-          amber: '#E8902B', // 11–30 min
-          red: '#E03B3B', // 30+ min
+          green: '#4CAF50', // 0–10 min
+          amber: '#F5A623', // 11–30 min
+          red: '#E53935', // 30+ min
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['IBM Plex Sans', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
         card: '0 2px 12px rgba(0,0,0,0.06)',

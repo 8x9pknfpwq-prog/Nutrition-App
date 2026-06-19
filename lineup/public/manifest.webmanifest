@@ -1,0 +1,17 @@
+{
+  "name": "NYC Lines",
+  "short_name": "NYC Lines",
+  "description": "Real-time NYC bar wait times, crowd-sourced and social.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F2EC",
+  "theme_color": "#D4C9B0",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

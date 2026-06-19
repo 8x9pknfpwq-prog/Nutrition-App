@@ -12,7 +12,8 @@ function barPinEl(bar) {
   el.style.cssText = `
     display:flex;align-items:center;justify-content:center;
     min-width:34px;height:34px;padding:0 8px;border-radius:9999px;
-    background:${waitColor(bar.waitMin)};color:#fff;font-weight:800;font-size:12px;
+    background:${waitColor(bar.waitMin)};color:#fff;font-weight:600;font-size:12px;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
     border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.25);`;
   el.textContent = bar.waitMin == null ? '?' : waitLabel(bar.waitMin);
   return el;
@@ -74,7 +75,7 @@ function FallbackMap({ bars, friends, onSelectBar }) {
               </span>
             )}
             <span
-              className="grid min-w-[34px] place-items-center rounded-full border-2 border-white px-2 py-1 text-xs font-extrabold text-white shadow-pin"
+              className="wait-time grid min-w-[34px] place-items-center rounded-full border-2 border-white px-2 py-1 text-xs font-semibold text-white shadow-pin"
               style={{ background: waitColor(b.waitMin) }}
             >
               {b.waitMin == null ? '?' : waitLabel(b.waitMin)}

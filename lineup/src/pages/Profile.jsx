@@ -24,11 +24,11 @@ export default function Profile() {
 
       <div className="mt-7 grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-white p-5 text-center shadow-card">
-          <p className="text-3xl font-extrabold text-ink">{stats.checkIns}</p>
+          <p className="stat-number text-3xl font-bold text-ink">{stats.checkIns}</p>
           <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-400">Check-ins</p>
         </div>
         <div className="rounded-2xl bg-white p-5 text-center shadow-card">
-          <p className="text-3xl font-extrabold text-ink">{stats.friends}</p>
+          <p className="stat-number text-3xl font-bold text-ink">{stats.friends}</p>
           <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-400">Friends</p>
         </div>
       </div>

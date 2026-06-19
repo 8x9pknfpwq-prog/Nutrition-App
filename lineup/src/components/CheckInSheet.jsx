@@ -31,7 +31,7 @@ function Dial({ value }) {
         style={{ transition: 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
       />
       <g className="rotate-90" style={{ transformOrigin: 'center' }}>
-        <text x="50%" y="46%" textAnchor="middle" className="fill-ink font-extrabold" style={{ fontSize: 46 }}>
+        <text x="50%" y="46%" textAnchor="middle" className="wait-time fill-ink font-bold" style={{ fontSize: 46 }}>
           {value >= MAX ? '90+' : value}
         </text>
         <text x="50%" y="60%" textAnchor="middle" className="fill-gray-400 font-semibold" style={{ fontSize: 12, letterSpacing: 1 }}>

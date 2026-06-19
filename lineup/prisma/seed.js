@@ -32,7 +32,7 @@ const DEMO_USERS = [
 ];
 
 async function main() {
-  console.log('🌱  Seeding LineUp...');
+  console.log('🌱  Seeding NYC Lines...');
 
   // Reset (order matters for FK constraints).
   await prisma.friendNotification.deleteMany();

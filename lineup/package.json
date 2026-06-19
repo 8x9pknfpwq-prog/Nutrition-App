@@ -1,7 +1,7 @@
 {
-  "name": "lineup",
+  "name": "nyc-lines",
   "version": "1.0.0",
-  "description": "LineUp — NYC bar wait-time, crowd-sourced & social",
+  "description": "NYC Lines — NYC bar wait-time, crowd-sourced & social",
   "type": "module",
   "prisma": {
     "seed": "node prisma/seed.js"

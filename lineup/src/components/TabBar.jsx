@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Users, Bookmark, User } from 'lucide-react';
+import { Users, Bookmark, User } from 'lucide-react';
+import NYCLinesLogo from './NYCLinesLogo.jsx';
 
 const TABS = [
-  { to: '/', label: 'Map', Icon: Map, end: true },
+  { to: '/', label: 'Map', Icon: null, end: true }, // home glyph = NYC Lines dot stack
   { to: '/friends', label: 'Friends', Icon: Users },
   { to: '/saved', label: 'Saved', Icon: Bookmark },
   { to: '/profile', label: 'Profile', Icon: User },
@@ -26,7 +27,13 @@ export default function TabBar() {
           >
             {({ isActive }) => (
               <>
-                <Icon size={22} strokeWidth={isActive ? 2.4 : 2} />
+                {Icon ? (
+                  <Icon size={22} strokeWidth={isActive ? 2.4 : 2} />
+                ) : (
+                  <span className={isActive ? '' : 'opacity-40 grayscale'}>
+                    <NYCLinesLogo variant="nav" height={24} />
+                  </span>
+                )}
                 {label}
               </>
             )}

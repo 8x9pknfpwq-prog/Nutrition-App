@@ -64,5 +64,5 @@ if (isProd) {
 }
 
 server.listen(PORT, () => {
-  console.log(`🍸  LineUp API + Socket.io on http://localhost:${PORT}`);
+  console.log(`NYC Lines · API + Socket.io on http://localhost:${PORT}`);
 });

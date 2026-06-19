@@ -4,6 +4,7 @@ import BottomSheet from '../components/BottomSheet.jsx';
 import BarCard from '../components/BarCard.jsx';
 import FilterPills from '../components/FilterPills.jsx';
 import CheckInSheet from '../components/CheckInSheet.jsx';
+import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 import { api } from '../lib/api.js';
 import { useSocket } from '../context/SocketContext.jsx';
 
@@ -63,10 +64,19 @@ export default function MapDashboard() {
         <MapView bars={bars} friends={friends} onSelectBar={setSelected} />
       </div>
 
+      {/* Brand header — left-aligned wordmark over the map */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+        <div className="pointer-events-auto rounded-2xl bg-canvas/85 px-3 py-1.5 shadow-card backdrop-blur">
+          <NYCLinesLogo variant="light" height={32} />
+        </div>
+      </header>
+
       {/* Bottom sheet */}
       <BottomSheet peekHeight={340}>
         <div className="pt-3">
-          <h1 className="text-xl font-bold text-ink">{visible.length} spots nearby</h1>
+          <h1 className="text-xl font-bold text-ink">
+            <span className="stat-number">{visible.length}</span> spots nearby
+          </h1>
           <p className="text-sm text-gray-500">East Village · Lower East Side</p>
         </div>
 

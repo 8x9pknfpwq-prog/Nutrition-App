@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SocketProvider, useSocket } from './context/SocketContext.jsx';
 import { ToastProvider, useToast } from './context/ToastContext.jsx';
 import TabBar from './components/TabBar.jsx';
+import NYCLinesLogo from './components/NYCLinesLogo.jsx';
 import Auth from './pages/Auth.jsx';
 import MapDashboard from './pages/MapDashboard.jsx';
 import Friends from './pages/Friends.jsx';
@@ -53,7 +54,7 @@ function Gate() {
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-canvas">
-        <div className="text-3xl">🍸</div>
+        <NYCLinesLogo variant="light" height={44} className="animate-pulse" />
       </div>
     );
   }

@@ -4,6 +4,15 @@
 
 :root {
   color-scheme: light;
+
+  /* --- NYC Lines brand tokens --- */
+  --signal-green: #4caf50; /* 0–10 min wait */
+  --signal-amber: #f5a623; /* 11–30 min wait */
+  --signal-red: #e53935; /* 30+ min wait */
+  --khaki-tile: #d4c9b0; /* app icon tile */
+  --app-bg: #f5f2ec; /* app background */
+  --ink: #1a1a18; /* near-black text / dark tile */
+  --muted: #8a8070; /* muted label (NYC eyebrow) */
 }
 
 html,
@@ -14,10 +23,18 @@ body,
 
 body {
   margin: 0;
-  background: #f5f4f1;
-  color: #1a1a1a;
+  background: var(--app-bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Data / numbers (wait times, counts, timers) use IBM Plex Mono. */
+.wait-time,
+.stat-number,
+.timer {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* Hide scrollbars on the bottom-sheet lists for a cleaner mobile feel. */

@@ -1,4 +1,4 @@
-// LineUp — Prisma schema (PostgreSQL)
+// NYC Lines — Prisma schema (PostgreSQL)
 generator client {
   provider = "prisma-client-js"
 }

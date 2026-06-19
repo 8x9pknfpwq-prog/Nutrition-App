@@ -1,4 +1,8 @@
-# LineUp 🍸
+# NYC Lines
+
+The wordmark is **"L·nes"** — the "i" is a vertical stack of three colored
+status dots (🟢 green / 🟡 amber / 🔴 red), the same signal palette used for
+wait times across the app.
 
 A social, crowd-sourced **NYC bar wait-time** app. See real-time wait times at
 bars near you — reported and verified by the crowd — with a friends layer that

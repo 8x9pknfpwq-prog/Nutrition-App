@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 
 export default function Auth() {
   const { login, signup } = useAuth();
@@ -27,10 +28,9 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-6">
-      <div className="mb-8 text-center">
-        <div className="text-5xl">🍸</div>
-        <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">LineUp</h1>
-        <p className="mt-1 text-sm text-gray-500">Real-time bar wait times, by the crowd.</p>
+      <div className="mb-8 flex flex-col items-center text-center">
+        <NYCLinesLogo variant="light" height={56} />
+        <p className="mt-3 text-sm text-gray-500">Real-time bar wait times, by the crowd.</p>
       </div>
 
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-card">
