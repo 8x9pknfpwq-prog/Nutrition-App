@@ -48,8 +48,10 @@ real-time UI still animates.
 from a branch"** and choose **`gh-pages` / `(root)`**. The demo then lives at
 `https://<owner>.github.io/<repo>/` (e.g. `https://8x9pknfpwq-prog.github.io/Nutrition-App/`).
 
-> Demo mode notes: it uses the schematic fallback map (no Mapbox token needed),
-> routing is hash-based, and your reports/friend actions reset on a full reload.
+> Demo mode notes: routing is hash-based, and your reports/friend actions reset
+> on a full reload. The **live interactive Mapbox map** is enabled when a public
+> `VITE_MAPBOX_TOKEN` is configured (repo secret/variable, or `lineup/.env`
+> locally); otherwise the app uses the schematic fallback map.
 
 ## Getting started
 
