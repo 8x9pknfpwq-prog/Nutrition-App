@@ -44,10 +44,10 @@ jobs:
           # Serves correctly from the repo subpath, e.g. /Nutrition-App/
           VITE_BASE: /${{ github.event.repository.name }}/
           # Optional: a public Mapbox token (pk.*) enables the live interactive
-          # map. Add it under Settings → Secrets and variables → Actions as
-          # either a secret or a variable named VITE_MAPBOX_TOKEN. If unset, the
-          # app falls back to the schematic map.
-          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN || vars.VITE_MAPBOX_TOKEN }}
+          # map. Add it under Settings → Secrets and variables → Actions as a
+          # repository secret named VITE_MAPBOX_TOKEN. If unset, the app falls
+          # back to the schematic map.
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: npm run build
 
       - name: Publish to gh-pages
