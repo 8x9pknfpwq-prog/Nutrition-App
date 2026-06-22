@@ -43,10 +43,11 @@ jobs:
           VITE_DEMO: 'true'
           # Serves correctly from the repo subpath, e.g. /Nutrition-App/
           VITE_BASE: /${{ github.event.repository.name }}/
-          # Optional: a public Mapbox token (pk.*) enables the live interactive
-          # map. Add it under Settings → Secrets and variables → Actions as a
-          # repository secret named VITE_MAPBOX_TOKEN. If unset, the app falls
-          # back to the schematic map.
+          # Enables the live interactive map. MUST be a Mapbox *public* token
+          # (starts with "pk.") since it ships in the client bundle — a secret
+          # token ("sk.") is blocked by GitHub push protection. Add it under
+          # Settings → Secrets and variables → Actions as repository secret
+          # VITE_MAPBOX_TOKEN. If unset, the app uses the schematic map.
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: npm run build
 
