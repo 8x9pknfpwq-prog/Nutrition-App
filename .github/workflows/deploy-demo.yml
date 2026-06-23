@@ -1,8 +1,10 @@
 name: Deploy demo (GitHub Pages)
 
-# Builds the static "demo mode" of the NYC Lines app (lineup/) and publishes it
-# to the gh-pages branch. Enable Pages once under:
-#   Settings → Pages → Source: "Deploy from a branch" → Branch: gh-pages / (root)
+# Builds the static "demo mode" of the NYC Lines app (lineup/) and deploys it
+# via GitHub's official Pages mechanism (artifact upload — NOT a git push), so
+# it isn't subject to branch push-protection.
+#
+# One-time setup: Settings → Pages → Source: "GitHub Actions".
 
 on:
   push:
@@ -15,14 +17,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: deploy-demo
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +52,7 @@ jobs:
           echo "Token length: ${#TOK} characters (a single Mapbox token is ~90)."
           case "$TOK" in
             *sk.eyJ*)
-              echo "::error::VITE_MAPBOX_TOKEN contains a Mapbox SECRET token (an 'sk.' token) inside its value. The secret must contain ONLY your PUBLIC token: a single string that starts with 'pk.' and nothing else. Re-copy just the Default public token from https://account.mapbox.com/access-tokens/ and overwrite the secret."
+              echo "::error::VITE_MAPBOX_TOKEN contains a Mapbox SECRET token (an 'sk.' token). The secret must contain ONLY your PUBLIC token (a single string starting with 'pk.'). A secret token must never ship in a public site."
               exit 1 ;;
           esac
           case "$TOK" in
@@ -57,7 +61,7 @@ jobs:
           esac
           case "$TOK" in
             *[[:space:]]*)
-              echo "::error::VITE_MAPBOX_TOKEN contains whitespace or multiple lines. Paste ONLY the single public token string — no labels, extra text, or newlines."
+              echo "::error::VITE_MAPBOX_TOKEN contains whitespace or multiple lines. Paste ONLY the single public token string."
               exit 1 ;;
           esac
           echo "VITE_MAPBOX_TOKEN looks like a clean public token (pk.)."
@@ -66,19 +70,24 @@ jobs:
         working-directory: lineup
         env:
           VITE_DEMO: 'true'
-          # Serves correctly from the repo subpath, e.g. /Nutrition-App/
           VITE_BASE: /${{ github.event.repository.name }}/
-          # Enables the live interactive map. MUST be a Mapbox *public* token
-          # (starts with "pk.") since it ships in the client bundle — a secret
-          # token ("sk.") is blocked by GitHub push protection. Add it under
-          # Settings → Secrets and variables → Actions as repository secret
-          # VITE_MAPBOX_TOKEN. If unset, the app uses the schematic map.
+          # Public Mapbox token (pk.*). Enables the live interactive map.
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: npm run build
 
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: lineup/dist
-          force_orphan: true
+          path: lineup/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
