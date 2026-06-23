@@ -37,21 +37,30 @@ jobs:
         working-directory: lineup
         run: npm ci
 
-      - name: Validate Mapbox token type
+      - name: Validate Mapbox token
         env:
           TOK: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: |
           if [ -z "$TOK" ]; then
-            echo "VITE_MAPBOX_TOKEN is not set — building with the schematic fallback map."
-          elif [ "${TOK#pk.}" != "$TOK" ]; then
-            echo "VITE_MAPBOX_TOKEN is a public token (pk.) — good."
-          elif [ "${TOK#sk.}" != "$TOK" ]; then
-            echo "::error::VITE_MAPBOX_TOKEN is a Mapbox SECRET token (starts with sk.). It cannot ship in a public site and is blocked by GitHub push protection. Replace it with a PUBLIC token (pk.) under Settings → Secrets and variables → Actions."
-            exit 1
-          else
-            echo "::error::VITE_MAPBOX_TOKEN does not start with 'pk.' — expected a public Mapbox token."
-            exit 1
+            echo "VITE_MAPBOX_TOKEN is empty — building with the schematic fallback map."
+            exit 0
           fi
+          echo "Token length: ${#TOK} characters (a single Mapbox token is ~90)."
+          case "$TOK" in
+            *sk.eyJ*)
+              echo "::error::VITE_MAPBOX_TOKEN contains a Mapbox SECRET token (an 'sk.' token) inside its value. The secret must contain ONLY your PUBLIC token: a single string that starts with 'pk.' and nothing else. Re-copy just the Default public token from https://account.mapbox.com/access-tokens/ and overwrite the secret."
+              exit 1 ;;
+          esac
+          case "$TOK" in
+            pk.*) : ;;
+            *) echo "::error::VITE_MAPBOX_TOKEN does not start with 'pk.'. Use a Mapbox public token."; exit 1 ;;
+          esac
+          case "$TOK" in
+            *[[:space:]]*)
+              echo "::error::VITE_MAPBOX_TOKEN contains whitespace or multiple lines. Paste ONLY the single public token string — no labels, extra text, or newlines."
+              exit 1 ;;
+          esac
+          echo "VITE_MAPBOX_TOKEN looks like a clean public token (pk.)."
 
       - name: Build static demo
         working-directory: lineup
