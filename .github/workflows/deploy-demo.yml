@@ -37,6 +37,22 @@ jobs:
         working-directory: lineup
         run: npm ci
 
+      - name: Validate Mapbox token type
+        env:
+          TOK: ${{ secrets.VITE_MAPBOX_TOKEN }}
+        run: |
+          if [ -z "$TOK" ]; then
+            echo "VITE_MAPBOX_TOKEN is not set — building with the schematic fallback map."
+          elif [ "${TOK#pk.}" != "$TOK" ]; then
+            echo "VITE_MAPBOX_TOKEN is a public token (pk.) — good."
+          elif [ "${TOK#sk.}" != "$TOK" ]; then
+            echo "::error::VITE_MAPBOX_TOKEN is a Mapbox SECRET token (starts with sk.). It cannot ship in a public site and is blocked by GitHub push protection. Replace it with a PUBLIC token (pk.) under Settings → Secrets and variables → Actions."
+            exit 1
+          else
+            echo "::error::VITE_MAPBOX_TOKEN does not start with 'pk.' — expected a public Mapbox token."
+            exit 1
+          fi
+
       - name: Build static demo
         working-directory: lineup
         env:
