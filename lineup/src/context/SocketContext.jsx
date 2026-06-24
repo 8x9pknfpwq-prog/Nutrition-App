@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
 import { DEMO, demoSocket } from '../lib/demo.js';
 import { IS_SUPABASE } from '../lib/mode.js';
+import { supabaseRealtime } from '../lib/supabaseRealtime.js';
 
 const SocketContext = createContext(null);
 
@@ -22,11 +23,16 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    // Supabase mode: realtime is added in Stage 2b. For now, no live socket
-    // (the app refetches after actions), so components see a null socket.
+    // Supabase mode: live updates via Supabase Realtime (wraps the same socket
+    // interface), so wait/check-in changes push to everyone.
     if (IS_SUPABASE) {
-      setSocket(null);
-      return;
+      socketRef.current = supabaseRealtime;
+      setSocket(supabaseRealtime);
+      return () => {
+        supabaseRealtime.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      };
     }
 
     // Demo builds use the in-browser simulated socket.
