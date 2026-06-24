@@ -54,6 +54,20 @@ const BARS = [
   { id: 'bar_boiler', name: 'Boilermaker', address: '13 First Ave', latitude: 40.72402, longitude: -73.98826, rating: 4.0, distance: 0.3 },
   { id: 'bar_goto', name: 'Bar Goto', address: '245 Eldridge St', latitude: 40.72236, longitude: -73.98968, rating: 4.5, distance: 0.4 },
   { id: 'bar_tenbells', name: 'Ten Bells', address: '247 Broome St', latitude: 40.71803, longitude: -73.99069, rating: 4.4, distance: 0.8 },
+  // West Village / Greenwich Village
+  { id: 'bar_eo', name: 'Employees Only', address: '510 Hudson St', latitude: 40.7339, longitude: -74.0058, rating: 4.6, distance: 0.7 },
+  { id: 'bar_spaniard', name: 'The Spaniard', address: '190 W 4th St', latitude: 40.7331, longitude: -74.0021, rating: 4.4, distance: 0.5 },
+  { id: 'bar_hatch', name: 'Down the Hatch', address: '179 W 4th St', latitude: 40.7325, longitude: -74.0008, rating: 4.1, distance: 0.5 },
+  { id: 'bar_duewest', name: 'Due West', address: '189 W 10th St', latitude: 40.7344, longitude: -74.0021, rating: 4.0, distance: 0.6 },
+  { id: 'bar_angels_grove', name: "Angel's Share (Grove St)", address: '45 Grove St', latitude: 40.7331, longitude: -74.003, rating: 4.5, distance: 0.6 },
+  { id: 'bar_dnd', name: 'Do Not Disturb', address: '285 W 12th St', latitude: 40.7382, longitude: -74.0048, rating: 4.3, distance: 0.9 },
+  { id: 'bar_bleecker', name: 'Bleecker Street Bar', address: '648 Broadway', latitude: 40.7268, longitude: -73.9947, rating: 4.2, distance: 0.1 },
+  { id: 'bar_roccos', name: "Rocco's Sports & Rec", address: '1 W 3rd St', latitude: 40.7288, longitude: -73.9942, rating: 4.1, distance: 0.1 },
+  // Tribeca / FiDi
+  { id: 'bar_brickyard', name: 'Brickyard', address: '23 Park Pl', latitude: 40.7136, longitude: -74.008, rating: 4.7, distance: 1.2 },
+  { id: 'bar_gst', name: 'Greenwich Street Tavern', address: '399 Greenwich St', latitude: 40.7203, longitude: -74.0095, rating: 4.3, distance: 1.0 },
+  { id: 'bar_deadrabbit', name: 'The Dead Rabbit', address: '30 Water St', latitude: 40.7033, longitude: -74.0114, rating: 4.7, distance: 1.9 },
+  { id: 'bar_holywater', name: 'Holywater', address: '112 Reade St', latitude: 40.716, longitude: -74.009, rating: 4.4, distance: 1.1 },
 ];
 
 const USERS = [
