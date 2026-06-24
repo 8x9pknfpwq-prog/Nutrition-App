@@ -11,6 +11,18 @@ import { api } from '../lib/api.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
+// Great-circle distance in miles between the user and a bar.
+function milesBetween(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 10) / 10;
+}
+
 export default function MapDashboard() {
   const socket = useSocket();
   const { showToast } = useToast();
@@ -84,14 +96,21 @@ export default function MapDashboard() {
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return bars.filter((b) => {
+    const list = bars.filter((b) => {
       if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
       if (filters.includes('under20') && !(b.waitMin != null && b.waitMin < 20)) return false;
       if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
       // "Open now" is a soft filter — all seeded bars are treated as open.
       return true;
     });
-  }, [bars, filters, query]);
+    // Once we know where the user is, show distance from them and sort nearest first.
+    if (userLocation) {
+      return list
+        .map((b) => ({ ...b, distance: milesBetween(userLocation, b) }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+    return list;
+  }, [bars, filters, query, userLocation]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-canvas">
@@ -130,7 +149,11 @@ export default function MapDashboard() {
             {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : 'spots nearby'}
           </h1>
           <p className="truncate text-sm text-gray-500">
-            {query.trim() ? `for “${query.trim()}”` : 'East Village · Lower East Side'}
+            {query.trim()
+              ? `for “${query.trim()}”`
+              : userLocation
+              ? 'Nearest to you'
+              : 'East Village · Lower East Side'}
           </p>
         </div>
 
