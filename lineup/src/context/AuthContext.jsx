@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { api } from '../lib/api.js';
 import { IS_SUPABASE } from '../lib/mode.js';
 import { supabase } from '../lib/supabase.js';
+import { registerPush } from '../lib/push.js';
 
 const AuthContext = createContext(null);
 
@@ -46,8 +47,18 @@ export function AuthProvider({ children }) {
     return d.user;
   }, []);
 
+  // Once signed in on a native build, register for push (no-op on web).
+  useEffect(() => {
+    if (user) registerPush().catch(() => {});
+  }, [user]);
+
   const logout = useCallback(async () => {
     await api.logout();
+    setUser(null);
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await api.deleteAccount();
     setUser(null);
   }, []);
 
@@ -69,7 +80,11 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, recovering, login, signup, logout, requestPasswordReset, updatePassword }}
+      value={{
+        user, loading, recovering,
+        login, signup, logout, deleteAccount,
+        requestPasswordReset, updatePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>

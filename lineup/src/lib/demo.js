@@ -340,6 +340,15 @@ export const demoApi = {
     if (!password || password.length < 6) throw apiError('Password must be at least 6 characters');
     return { ok: true };
   },
+  async saveDeviceToken() {
+    return { ok: true };
+  },
+  async deleteAccount() {
+    sessionUserId = null;
+    localStorage.removeItem(SESSION_KEY);
+    demoSocket.disconnect();
+    return { ok: true };
+  },
   async me() {
     const u = sessionUserId && userById(sessionUserId);
     if (!u) throw apiError('Not authenticated', 401);

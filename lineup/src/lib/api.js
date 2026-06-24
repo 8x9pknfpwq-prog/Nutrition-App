@@ -35,6 +35,8 @@ const realApi = {
   me: () => request('/auth/me'),
   requestPasswordReset: (email) => request('/auth/reset', { method: 'POST', body: { email } }),
   updatePassword: (password) => request('/auth/password', { method: 'POST', body: { password } }),
+  saveDeviceToken: (token, platform) => request('/devices', { method: 'POST', body: { token, platform } }),
+  deleteAccount: () => request('/auth/account', { method: 'DELETE' }),
 
   // bars
   bars: () => request('/bars'),

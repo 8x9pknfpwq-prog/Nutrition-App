@@ -108,6 +108,30 @@ export const supabaseApi = {
     if (error) throw new Error(error.message);
     return { ok: true };
   },
+
+  // Store this device's APNs/FCM token so the send-push function can reach it.
+  async saveDeviceToken(token, devicePlatform) {
+    const id = await myId();
+    if (!id || !token) return { ok: false };
+    const { error } = await supabase
+      .from('device_tokens')
+      .upsert({ user_id: id, token, platform: devicePlatform }, { onConflict: 'token' });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+
+  // Permanently delete the signed-in user's account + data, then sign out.
+  // Runs through the delete-account Edge Function (needs the service role to
+  // remove the auth user; deleting it cascades to profile, reports, etc.).
+  async deleteAccount() {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw apiErr('Not authenticated', 401);
+    const { error } = await supabase.functions.invoke('delete-account');
+    if (error) throw new Error(error.message || 'Could not delete account');
+    await supabase.auth.signOut();
+    return { ok: true };
+  },
   async me() {
     const user = await getSupabaseUser();
     if (!user) throw apiErr('Not authenticated', 401);

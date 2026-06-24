@@ -9,6 +9,7 @@ import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 import { Plus, Search, X, LocateFixed } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { displayWait } from '../lib/busyness.js';
+import { getCurrentPosition } from '../lib/geo.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -39,18 +40,14 @@ export default function MapDashboard() {
   // Center the map on the user. manual=true surfaces errors (button press);
   // the silent attempt on load won't nag if permission isn't granted.
   const locate = useCallback(
-    (manual = false) => {
-      if (!navigator.geolocation) {
-        if (manual) showToast({ title: 'Location unavailable on this device' });
-        return;
+    async (manual = false) => {
+      try {
+        const loc = await getCurrentPosition();
+        setUserLocation(loc);
+      } catch {
+        if (manual)
+          showToast({ title: 'Location is off', body: 'Allow location access to center the map on you.' });
       }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        () => {
-          if (manual) showToast({ title: 'Location is off', body: 'Allow location access to center the map on you.' });
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
     },
     [showToast]
   );
