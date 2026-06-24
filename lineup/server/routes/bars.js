@@ -1,10 +1,68 @@
 import { Router } from 'express';
 import { prisma } from '../prisma.js';
 import { computeWaitTime } from '../utils/waittime.js';
+import { requireAuth } from '../middleware/auth.js';
+import { getIo, NYC_ROOM } from '../socket.js';
+import { verifyPlaceWithGoogle, milesFromCenter } from '../utils/places.js';
 
 const router = Router();
 
 const NINETY_MIN_AGO = () => new Date(Date.now() - 90 * 60 * 1000);
+
+// POST /api/bars — submit a new place (auth required). Before storing it, the
+// place is verified against Google Maps so users can't add fake spots; Google's
+// canonical name/address/coordinates are saved.
+router.post('/', requireAuth, async (req, res) => {
+  const name = (req.body?.name || '').trim();
+  const address = (req.body?.address || '').trim();
+  if (!name || !address) {
+    return res.status(400).json({ error: 'name and address are required' });
+  }
+
+  const verification = await verifyPlaceWithGoogle(name, address);
+  if (verification.status === 'not_configured') {
+    return res.status(503).json({ error: 'Place verification is not configured on the server.' });
+  }
+  if (verification.status === 'not_found') {
+    return res.status(422).json({ error: "We couldn't verify that place on Google Maps — double-check the name and address." });
+  }
+  if (verification.status === 'error') {
+    return res.status(502).json({ error: 'Place verification is temporarily unavailable, please try again.' });
+  }
+
+  const p = verification.place;
+
+  // Dedupe on Google place id (preferred) or name+address.
+  const existing = await prisma.bar.findFirst({
+    where: {
+      OR: [
+        ...(p.googlePlaceId ? [{ googlePlaceId: p.googlePlaceId }] : []),
+        { name: { equals: p.name, mode: 'insensitive' }, address: { equals: p.address, mode: 'insensitive' } },
+      ],
+    },
+  });
+  if (existing) {
+    return res.status(409).json({ error: 'That place is already on the map.' });
+  }
+
+  const bar = await prisma.bar.create({
+    data: {
+      name: p.name,
+      address: p.address,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      rating: p.rating ?? 0,
+      distance: milesFromCenter(p.latitude, p.longitude),
+      googlePlaceId: p.googlePlaceId || null,
+      verified: true,
+    },
+  });
+
+  const payload = { ...bar, waitMin: null, reportCount: 0, confidence: 'low', checkins: [] };
+  const io = getIo();
+  if (io) io.to(NYC_ROOM).emit('bar_added', payload);
+  res.status(201).json({ bar: payload });
+});
 
 // GET /api/bars — all bars with their current computed wait time + any
 // recent friend check-ins layered on (so the map can float friend avatars).

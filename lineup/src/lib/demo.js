@@ -10,13 +10,27 @@
 // Note: mutations (your reports / friend actions) live for the session and
 // reset on a full page reload; your login persists via localStorage.
 
+import { geocodePlace } from './geocode.js';
+
 export const DEMO = import.meta.env.VITE_DEMO === 'true';
 
 const SESSION_KEY = 'nyc_lines_demo_session';
+const USER_BARS_KEY = 'nyc_lines_demo_bars';
 
 // --- helpers -------------------------------------------------------------
 const uid = () => Math.random().toString(36).slice(2, 10);
 const minsAgo = (m) => new Date(Date.now() - m * 60 * 1000);
+const NYC_CENTER = { lat: 40.7282, lng: -73.9942 };
+function milesFromCenter(lat, lng) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(lat - NYC_CENTER.lat);
+  const dLng = toRad(lng - NYC_CENTER.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(NYC_CENTER.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)) * 10) / 10;
+}
 function apiError(message, status = 400) {
   const e = new Error(message);
   e.status = status;
@@ -72,7 +86,7 @@ function buildState() {
     }
   }
   return {
-    bars: BARS.map((b) => ({ ...b })),
+    bars: BARS.map((b) => ({ ...b, verified: true })),
     users: USERS.map((u) => ({ ...u })),
     reports,
     friendships: [
@@ -89,6 +103,18 @@ function buildState() {
 
 const db = buildState();
 let sessionUserId = localStorage.getItem(SESSION_KEY) || null;
+
+// User-submitted places persist in the browser for the static demo (per-device).
+function persistUserBars() {
+  const seedIds = new Set(BARS.map((b) => b.id));
+  localStorage.setItem(USER_BARS_KEY, JSON.stringify(db.bars.filter((b) => !seedIds.has(b.id))));
+}
+try {
+  const saved = JSON.parse(localStorage.getItem(USER_BARS_KEY)) || [];
+  for (const b of saved) if (!db.bars.some((x) => x.id === b.id)) db.bars.push(b);
+} catch {
+  // ignore malformed storage
+}
 
 // --- wait-time algorithm (mirrors server/utils/waittime.js) --------------
 function computeWait(reports, now = Date.now()) {
@@ -245,6 +271,37 @@ export const demoApi = {
   },
   async waittime(id) {
     return computeWait(reportsForBar(id));
+  },
+  async createBar({ name, address }) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    name = (name || '').trim();
+    address = (address || '').trim();
+    if (!name || !address) throw apiError('name and address are required');
+    let geo;
+    try {
+      geo = await geocodePlace(`${name}, ${address}`);
+    } catch (e) {
+      throw apiError(e.message || 'Address lookup failed');
+    }
+    if (!geo) throw apiError("We couldn't find that place — check the name and address.", 422);
+    if (db.bars.some((b) => b.name.toLowerCase() === name.toLowerCase() && b.address.toLowerCase() === address.toLowerCase())) {
+      throw apiError('That place is already on the map.', 409);
+    }
+    const bar = {
+      id: 'bar_' + uid(),
+      name,
+      address,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      rating: 0,
+      distance: milesFromCenter(geo.latitude, geo.longitude),
+      verified: false, // the static demo can't run the server-side Google check
+    };
+    db.bars.push(bar);
+    persistUserBars();
+    const payload = { ...bar, waitMin: null, reportCount: 0, confidence: 'low', checkins: [] };
+    demoSocket._dispatch('bar_added', payload);
+    return { bar: payload };
   },
   async report({ barId, waitMin }) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);

@@ -1,4 +1,4 @@
-import { Star, MapPin } from 'lucide-react';
+import { Star, MapPin, BadgeCheck } from 'lucide-react';
 import WaitBadge from './WaitBadge.jsx';
 import Avatar from './Avatar.jsx';
 import { timeAgo } from '../lib/wait.js';
@@ -23,13 +23,18 @@ export default function BarCard({ bar, onClick }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="truncate text-[15px] font-semibold text-ink">{bar.name}</h3>
+          <h3 className="flex min-w-0 items-center gap-1 truncate text-[15px] font-semibold text-ink">
+            <span className="truncate">{bar.name}</span>
+            {bar.verified && (
+              <BadgeCheck size={14} className="shrink-0 text-wait-green" aria-label="Verified on Google Maps" />
+            )}
+          </h3>
           <WaitBadge waitMin={bar.waitMin} />
         </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
           <span className="flex items-center gap-0.5">
             <Star size={12} className="fill-amber-400 text-amber-400" />
-            {bar.rating?.toFixed(1)}
+            {bar.rating ? bar.rating.toFixed(1) : 'New'}
           </span>
           <span>·</span>
           <span>{bar.distance} mi</span>

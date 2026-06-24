@@ -23,13 +23,16 @@ model User {
 }
 
 model Bar {
-  id        String @id @default(uuid())
-  name      String
-  address   String
-  latitude  Float
-  longitude Float
-  rating    Float
-  distance  Float // stored in miles for display
+  id            String  @id @default(uuid())
+  name          String
+  address       String
+  latitude      Float
+  longitude     Float
+  rating        Float
+  distance      Float // stored in miles for display
+  googlePlaceId String? @unique // set when verified against Google Places
+  verified      Boolean @default(false)
+  createdAt     DateTime @default(now())
 
   reports Report[]
 }

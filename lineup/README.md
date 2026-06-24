@@ -53,6 +53,29 @@ from a branch"** and choose **`gh-pages` / `(root)`**. The demo then lives at
 > `VITE_MAPBOX_TOKEN` is configured (repo secret/variable, or `lineup/.env`
 > locally); otherwise the app uses the schematic fallback map.
 
+## Hosting the real app (shared database)
+
+The static demo above stores everything in the browser. To run NYC Lines as a
+real website with **one shared PostgreSQL database** (and Google-verified place
+submissions), deploy the full stack. A [Render](https://render.com) blueprint is
+included at the repo root (`render.yaml`):
+
+1. Push the repo to GitHub (done).
+2. In Render: **New → Blueprint**, pick this repo. It provisions a web service
+   (Node server + built client) and a free PostgreSQL database automatically.
+3. Set two values in the service's **Environment** (the blueprint marks them as
+   "sync: false"):
+   - `VITE_MAPBOX_TOKEN` — your Mapbox **public** token (`pk.*`)
+   - `GOOGLE_MAPS_API_KEY` — a Google Cloud key with the **Places API** enabled
+     (needed to verify submitted places)
+4. Deploy. The build syncs the schema, seeds the 15 starter bars once, and
+   serves the app at your Render URL. Add a custom domain in Render → Settings
+   when you're ready to launch.
+
+> Place submissions (`POST /api/bars`) are verified server-side via the Google
+> Places API, so only real venues are added. Without `GOOGLE_MAPS_API_KEY` the
+> submit endpoint returns 503.
+
 ## Getting started
 
 ```bash
@@ -109,11 +132,12 @@ Exposed at `GET /api/bars/:id/waittime → { waitMin, reportCount, confidence }`
 | GET    | `/api/auth/me`      | —                             |
 
 ### Bars
-| Method | Route                      |
-| ------ | -------------------------- |
-| GET    | `/api/bars`                |
-| GET    | `/api/bars/:id`            |
-| GET    | `/api/bars/:id/waittime`   |
+| Method | Route                      | Notes |
+| ------ | -------------------------- | ----- |
+| GET    | `/api/bars`                | all bars + current wait |
+| GET    | `/api/bars/:id`            | detail + recent reports |
+| GET    | `/api/bars/:id/waittime`   | computed wait |
+| POST   | `/api/bars` (auth)         | submit a place `{ name, address }` — **verified against Google Maps** before it's saved; emits `bar_added` |
 
 ### Reports (auth)
 | Method | Route          | Body                  |

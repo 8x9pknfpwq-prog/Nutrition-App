@@ -32,18 +32,19 @@ const DEMO_USERS = [
 ];
 
 async function main() {
-  console.log('🌱  Seeding NYC Lines...');
+  // Idempotent: never wipe an already-populated (production) database. This
+  // protects user-submitted places across redeploys — it only seeds an empty DB.
+  const existing = await prisma.bar.count();
+  if (existing > 0) {
+    console.log(`✔  Database already has ${existing} bars — skipping seed.`);
+    return;
+  }
 
-  // Reset (order matters for FK constraints).
-  await prisma.friendNotification.deleteMany();
-  await prisma.report.deleteMany();
-  await prisma.friendship.deleteMany();
-  await prisma.bar.deleteMany();
-  await prisma.user.deleteMany();
+  console.log('🌱  Seeding NYC Lines...');
 
   const bars = [];
   for (const b of BARS) {
-    bars.push(await prisma.bar.create({ data: b }));
+    bars.push(await prisma.bar.create({ data: { ...b, verified: true } }));
   }
   console.log(`   • ${bars.length} bars`);
 

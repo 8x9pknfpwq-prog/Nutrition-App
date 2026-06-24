@@ -19,7 +19,10 @@ import userRoutes from './routes/users.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+// In production the client is served by this same server (same-origin). Render
+// exposes the public URL as RENDER_EXTERNAL_URL; fall back to the dev client.
+const CLIENT_ORIGIN =
+  process.env.CLIENT_ORIGIN || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173';
 const isProd = process.env.NODE_ENV === 'production';
 
 const app = express();
