@@ -81,7 +81,7 @@ export default function MapDashboard() {
           onClick={() => setAdding(true)}
           className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform"
         >
-          <Plus size={18} /> Add
+          <Plus size={18} /> Suggest
         </button>
       </header>
 

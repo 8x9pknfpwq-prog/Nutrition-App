@@ -18,7 +18,7 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
     setSubmitting(true);
     try {
       const { bar } = await api.createBar({ name, address });
-      showToast({ title: 'Place added', body: `${bar.name} is now on the map` });
+      showToast({ title: 'Suggestion submitted', body: `Thanks! ${bar.name} will appear once it's approved.` });
       onAdded?.(bar);
       onClose();
     } catch (err) {
@@ -37,8 +37,8 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
       >
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-ink">Add a place</h2>
-            <p className="text-sm text-gray-500">Submit a bar — we verify it on Google Maps.</p>
+            <h2 className="text-xl font-bold text-ink">Suggest a place</h2>
+            <p className="text-sm text-gray-500">We verify it on Google Maps, then an admin reviews it before it goes live.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full bg-black/5 p-2 text-gray-500">
             <X size={18} />
@@ -67,7 +67,7 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
         {error && <p className="mt-3 text-sm font-medium text-wait-red">{error}</p>}
 
         <p className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
-          <ShieldCheck size={14} /> Verified against Google Maps before it's added.
+          <ShieldCheck size={14} /> Verified on Google Maps, then reviewed before going live.
         </p>
 
         <button
@@ -75,7 +75,7 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
           disabled={submitting || !name.trim() || !address.trim()}
           className="mt-4 w-full rounded-2xl bg-ink py-4 text-base font-semibold text-white disabled:opacity-50"
         >
-          {submitting ? 'Verifying…' : 'Add place'}
+          {submitting ? 'Verifying…' : 'Submit suggestion'}
         </button>
       </form>
     </div>

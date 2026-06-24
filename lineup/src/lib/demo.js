@@ -86,7 +86,7 @@ function buildState() {
     }
   }
   return {
-    bars: BARS.map((b) => ({ ...b, verified: true })),
+    bars: BARS.map((b) => ({ ...b, verified: true, approved: true })),
     users: USERS.map((u) => ({ ...u })),
     reports,
     friendships: [
@@ -257,7 +257,10 @@ export const demoApi = {
       if (!byBar.has(c.barId)) byBar.set(c.barId, []);
       byBar.get(c.barId).push({ userId: u.id, username: u.username, avatarInitial: u.avatarInitial, at: c.createdAt });
     }
-    const bars = db.bars.map((b) => ({ ...b, ...computeWait(reportsForBar(b.id)), checkins: byBar.get(b.id) || [] }));
+    // Only approved places appear on the map (suggestions stay pending).
+    const bars = db.bars
+      .filter((b) => b.approved)
+      .map((b) => ({ ...b, ...computeWait(reportsForBar(b.id)), checkins: byBar.get(b.id) || [] }));
     return { bars };
   },
   async bar(id) {
@@ -296,6 +299,7 @@ export const demoApi = {
       rating: 0,
       distance: milesFromCenter(geo.latitude, geo.longitude),
       verified: false, // the static demo can't run the server-side Google check
+      approved: false, // suggestions stay pending until an admin approves
     };
     db.bars.push(bar);
     persistUserBars();

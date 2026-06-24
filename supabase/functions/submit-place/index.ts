@@ -98,14 +98,22 @@ Deno.serve(async (req) => {
 
   // Dedupe on Google place id.
   const { data: existing } = await admin.from('bars').select('id').eq('google_place_id', p.google_place_id).maybeSingle();
-  if (existing) return json({ error: 'That place is already on the map.' }, 409);
+  if (existing) return json({ error: 'That place is already on the map or pending review.' }, 409);
 
+  // Stored as a Google-VERIFIED but UNAPPROVED suggestion. It only appears on
+  // the map once an admin sets approved = true.
   const { data: bar, error } = await admin
     .from('bars')
-    .insert({ ...p, distance: milesFromCenter(p.latitude, p.longitude), verified: true })
+    .insert({
+      ...p,
+      distance: milesFromCenter(p.latitude, p.longitude),
+      verified: true,
+      approved: false,
+      submitted_by: user.id,
+    })
     .select()
     .single();
   if (error) return json({ error: error.message }, 500);
 
-  return json({ bar }, 201);
+  return json({ bar, pending: true }, 201);
 });
