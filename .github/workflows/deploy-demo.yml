@@ -72,7 +72,10 @@ jobs:
           # If the Supabase vars are set (repo Variables), the app runs against
           # Supabase; otherwise it falls back to the in-browser demo.
           VITE_DEMO: 'true'
-          VITE_BASE: /${{ github.event.repository.name }}/
+          # A custom domain serves the site at the root ("/"); the github.io
+          # subpath serves it at "/<repo>/". Set repo Variable
+          # VITE_CUSTOM_DOMAIN (e.g. nyclines.app) to switch to root.
+          VITE_BASE: ${{ vars.VITE_CUSTOM_DOMAIN != '' && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           # Public Mapbox token (pk.*). Enables the live interactive map.
@@ -81,6 +84,19 @@ jobs:
           # VITE_PLAUSIBLE_DOMAIN to your site's domain to turn it on.
           VITE_PLAUSIBLE_DOMAIN: ${{ vars.VITE_PLAUSIBLE_DOMAIN }}
         run: npm run build
+
+      # Custom domain: tell GitHub Pages the domain (CNAME) and make the social
+      # card URLs absolute so link previews work off-platform (e.g. Facebook).
+      - name: Configure custom domain
+        if: vars.VITE_CUSTOM_DOMAIN != ''
+        working-directory: lineup
+        env:
+          DOMAIN: ${{ vars.VITE_CUSTOM_DOMAIN }}
+        run: |
+          echo "$DOMAIN" > dist/CNAME
+          sed -i "s#content=\"/og.png\"#content=\"https://$DOMAIN/og.png\"#g" dist/index.html
+          sed -i "s#content=\"/\" />#content=\"https://$DOMAIN/\" />#g" dist/index.html
+          echo "Custom domain set to $DOMAIN"
 
       - uses: actions/configure-pages@v5
 
