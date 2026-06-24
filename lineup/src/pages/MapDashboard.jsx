@@ -8,6 +8,7 @@ import AddPlaceSheet from '../components/AddPlaceSheet.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 import { Plus, Search, X, LocateFixed } from 'lucide-react';
 import { api } from '../lib/api.js';
+import { displayWait } from '../lib/busyness.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -98,7 +99,7 @@ export default function MapDashboard() {
     const q = query.trim().toLowerCase();
     const list = bars.filter((b) => {
       if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
-      if (filters.includes('under20') && !(b.waitMin != null && b.waitMin < 20)) return false;
+      if (filters.includes('under20') && !(displayWait(b).waitMin < 20)) return false;
       if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
       // "Open now" is a soft filter — all seeded bars are treated as open.
       return true;

@@ -2,10 +2,12 @@ import { Star, MapPin, BadgeCheck } from 'lucide-react';
 import WaitBadge from './WaitBadge.jsx';
 import Avatar from './Avatar.jsx';
 import { timeAgo } from '../lib/wait.js';
+import { displayWait, busynessLabel } from '../lib/busyness.js';
 
 // A bar row in the bottom sheet. Tapping it opens the check-in sheet.
 export default function BarCard({ bar, onClick }) {
   const friend = bar.checkins?.[0];
+  const wait = displayWait(bar);
   return (
     <button
       onClick={onClick}
@@ -29,7 +31,7 @@ export default function BarCard({ bar, onClick }) {
               <BadgeCheck size={14} className="shrink-0 text-wait-green" aria-label="Verified on Google Maps" />
             )}
           </h3>
-          <WaitBadge waitMin={bar.waitMin} />
+          <WaitBadge waitMin={wait.waitMin} est={!wait.isLive} />
         </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
           <span className="flex items-center gap-0.5">
@@ -40,11 +42,11 @@ export default function BarCard({ bar, onClick }) {
           <span>{bar.distance} mi</span>
           <span>·</span>
           <span>
-            {bar.reportCount === 0
-              ? 'No reports'
-              : bar.reportCount === 1
-              ? '1 report'
-              : `${bar.reportCount} reports`}
+            {wait.isLive
+              ? bar.reportCount === 1
+                ? '1 report'
+                : `${bar.reportCount} reports`
+              : `${busynessLabel(wait.level)} now`}
           </span>
         </div>
         {friend ? (

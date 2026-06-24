@@ -11,6 +11,7 @@
 // reset on a full page reload; your login persists via localStorage.
 
 import { geocodePlace } from './geocode.js';
+import { nycParts, priorWaitAt } from './busyness.js';
 
 export const DEMO = import.meta.env.VITE_DEMO === 'true';
 
@@ -89,9 +90,44 @@ const REPORT_PLAN = [
   ['bar_berlin', [[0, 7], [5, 33]]],
 ];
 
+// Synthesize ~3 weeks of past reports so the busyness *forecast* has real data
+// to average. Reports are placed in the evening window on past days, with waits
+// drawn around each bar's typical level for that weekday/hour (+ noise). All are
+// older than the 90-min live window, so they only feed the forecast, never the
+// live wait.
+const LIVE_WINDOW_MS = 90 * 60 * 1000;
+function synthesizeHistory(bars) {
+  const out = [];
+  const now = Date.now();
+  for (const bar of bars) {
+    for (let d = 1; d <= 21; d++) {
+      const base = new Date(now - d * 24 * 60 * 60 * 1000);
+      for (const hour of [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1]) {
+        const dt = new Date(base);
+        dt.setHours(hour, 10 + Math.floor(Math.random() * 45), 0, 0);
+        if (dt.getTime() > now - LIVE_WINDOW_MS) continue;
+        const { dow, hour: nh } = nycParts(dt.getTime());
+        const baseWait = priorWaitAt(bar, dow, nh);
+        const count = baseWait <= 0 ? (Math.random() < 0.15 ? 1 : 0) : 1 + (Math.random() < 0.5 ? 1 : 0);
+        for (let k = 0; k < count; k++) {
+          const noise = Math.round((Math.random() - 0.5) * 14);
+          out.push({
+            id: uid(),
+            barId: bar.id,
+            userId: USERS[Math.floor(Math.random() * USERS.length)].id,
+            waitMin: Math.max(0, baseWait + noise),
+            createdAt: dt,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
 // Fresh in-memory state, re-anchored to "now" on every load.
 function buildState() {
-  const reports = [];
+  const reports = [...synthesizeHistory(BARS)];
   let i = 0;
   for (const [barId, entries] of REPORT_PLAN) {
     for (const [waitMin, ago] of entries) {
@@ -163,6 +199,40 @@ function computeWait(reports, now = Date.now()) {
 }
 
 const reportsForBar = (barId) => db.reports.filter((r) => r.barId === barId);
+
+// Aggregate a bar's full history into a 7×24 { dow: { hour: { avgWait, n } } } map.
+function forecastHistogram(barId) {
+  const acc = {};
+  for (const r of db.reports) {
+    if (r.barId !== barId) continue;
+    const { dow, hour } = nycParts(new Date(r.createdAt).getTime());
+    const day = (acc[dow] ||= {});
+    const cell = (day[hour] ||= { sum: 0, n: 0 });
+    cell.sum += r.waitMin;
+    cell.n += 1;
+  }
+  const hist = {};
+  for (const [dow, day] of Object.entries(acc)) {
+    hist[dow] = {};
+    for (const [hour, c] of Object.entries(day)) hist[dow][hour] = { avgWait: c.sum / c.n, n: c.n };
+  }
+  return hist;
+}
+
+// Aggregate just the current NYC weekday/hour cell across all bars at once.
+function forecastNowByBar(dow, hour) {
+  const acc = {};
+  for (const r of db.reports) {
+    const p = nycParts(new Date(r.createdAt).getTime());
+    if (p.dow !== dow || p.hour !== hour) continue;
+    const cell = (acc[r.barId] ||= { sum: 0, n: 0 });
+    cell.sum += r.waitMin;
+    cell.n += 1;
+  }
+  const out = {};
+  for (const [barId, c] of Object.entries(acc)) out[barId] = { avgWait: c.sum / c.n, n: c.n };
+  return out;
+}
 const userById = (id) => db.users.find((u) => u.id === id);
 const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, createdAt: u.createdAt || new Date(), isAdmin: true });
 
@@ -276,10 +346,21 @@ export const demoApi = {
       byBar.get(c.barId).push({ userId: u.id, username: u.username, avatarInitial: u.avatarInitial, at: c.createdAt });
     }
     // Only approved places appear on the map (suggestions stay pending).
+    const { dow, hour } = nycParts();
+    const forecastNow = forecastNowByBar(dow, hour);
     const bars = db.bars
       .filter((b) => b.approved)
-      .map((b) => ({ ...b, ...computeWait(reportsForBar(b.id)), checkins: byBar.get(b.id) || [] }));
+      .map((b) => ({
+        ...b,
+        ...computeWait(reportsForBar(b.id)),
+        forecastNow: forecastNow[b.id] || { avgWait: 0, n: 0 },
+        checkins: byBar.get(b.id) || [],
+      }));
     return { bars };
+  },
+
+  async forecast(id) {
+    return { histogram: forecastHistogram(id) };
   },
   async bar(id) {
     const b = db.bars.find((x) => x.id === id);

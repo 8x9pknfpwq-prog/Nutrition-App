@@ -4,8 +4,67 @@ import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { waitColor, statusText } from '../lib/wait.js';
+import {
+  displayWait, busynessLabel, bestTimeHour, formatHour,
+  forecastDay, levelFromWait, histogramCount, nycParts,
+} from '../lib/busyness.js';
 
 const MAX = 90; // slider tops out at "90+"
+
+// "Best time to go" — tonight's forecast wait by hour, built from this bar's
+// own past reports (shrunk toward the generic prior where history is thin).
+function BestTime({ bar }) {
+  const [hist, setHist] = useState(undefined);
+
+  useEffect(() => {
+    let live = true;
+    api.forecast(bar.id).then((d) => { if (live) setHist(d.histogram || {}); }).catch(() => {});
+    return () => { live = false; };
+  }, [bar.id]);
+
+  const { dow, hour } = nycParts();
+  const dayWaits = forecastDay(bar, dow, hist);
+  const best = bestTimeHour(dayWaits);
+  const nowLevel = levelFromWait(dayWaits[hour]);
+  const samples = histogramCount(hist);
+
+  return (
+    <div className="mt-5 rounded-2xl bg-white p-3.5 shadow-card">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-ink">Best time to go</p>
+        <span className="text-xs font-medium text-gray-500">
+          Usually {busynessLabel(nowLevel).toLowerCase()} now
+        </span>
+      </div>
+      <div className="mt-3 flex h-12 items-end gap-[2px]">
+        {dayWaits.map((w, h) => (
+          <div
+            key={h}
+            className="flex-1 rounded-sm"
+            style={{
+              height: `${Math.max(8, levelFromWait(w) * 100)}%`,
+              background: h === hour ? '#1A1814' : h === best ? '#4CAF50' : '#E2DFD8',
+            }}
+            title={`${formatHour(h)} · ~${w}m`}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex justify-between text-[10px] font-semibold text-gray-400">
+        <span>12a</span>
+        <span>6a</span>
+        <span>12p</span>
+        <span>6p</span>
+        <span>11p</span>
+      </div>
+      <p className="mt-2 text-xs text-gray-500">
+        Calmest around <span className="font-semibold text-wait-green">{formatHour(best)}</span>
+        {samples > 0
+          ? <> · from {samples} past report{samples === 1 ? '' : 's'}</>
+          : <> · estimated until we have reports</>}
+      </p>
+    </div>
+  );
+}
 
 // Circular wait dial. Fills proportionally to the chosen wait, colored by band.
 function Dial({ value }) {
@@ -44,7 +103,7 @@ function Dial({ value }) {
 
 export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   const { showToast } = useToast();
-  const [value, setValue] = useState(bar.waitMin ?? 15);
+  const [value, setValue] = useState(bar.waitMin ?? displayWait(bar).waitMin ?? 15);
   const [share, setShare] = useState(true);
   const [friends, setFriends] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +174,9 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
             <span>90+</span>
           </div>
         </div>
+
+        {/* Best time to go */}
+        <BestTime bar={bar} />
 
         {/* Share with friends */}
         <div className="mt-5 flex items-center justify-between rounded-2xl bg-white p-3.5 shadow-card">

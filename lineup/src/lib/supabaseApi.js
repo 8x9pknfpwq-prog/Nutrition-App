@@ -6,6 +6,7 @@
 import { supabase } from './supabase.js';
 import { computeWait } from './waittime.js';
 import { geocodePlace } from './geocode.js';
+import { nycParts } from './busyness.js';
 
 function apiErr(message, status = 400) {
   const e = new Error(message);
@@ -46,6 +47,7 @@ function mapBar(b, extra = {}) {
     waitMin: extra.waitMin ?? null,
     reportCount: extra.reportCount ?? 0,
     confidence: extra.confidence ?? 'low',
+    forecastNow: extra.forecastNow ?? { avgWait: 0, n: 0 },
     checkins: extra.checkins ?? [],
   };
 }
@@ -100,7 +102,8 @@ export const supabaseApi = {
   // ── bars ──────────────────────────────────────────────────────────────────
   async bars() {
     const since = since90();
-    const [barsRes, repRes, noteRes] = await Promise.all([
+    const { dow, hour } = nycParts();
+    const [barsRes, repRes, noteRes, fcRes] = await Promise.all([
       supabase.from('bars').select('*'),
       supabase.from('reports').select('bar_id, wait_min, created_at').gte('created_at', since),
       supabase
@@ -108,6 +111,9 @@ export const supabaseApi = {
         .select('user_id, bar_id, created_at, profiles:user_id(username, avatar_initial)')
         .gte('created_at', since)
         .order('created_at', { ascending: false }),
+      // Forecast for the current weekday/hour. Tolerate the view not existing yet
+      // (migration 0006 not run) — bars just fall back to the generic prior.
+      supabase.from('bar_forecast').select('bar_id, avg_wait, n').eq('dow', dow).eq('hour', hour),
     ]);
     if (barsRes.error) throw new Error(barsRes.error.message);
 
@@ -124,11 +130,33 @@ export const supabaseApi = {
         at: n.created_at,
       });
     }
+    const forecastByBar = {};
+    for (const f of fcRes.data || []) {
+      forecastByBar[f.bar_id] = { avgWait: Number(f.avg_wait), n: f.n };
+    }
     return {
       bars: (barsRes.data || []).map((b) =>
-        mapBar(b, { ...computeWait(reportsByBar[b.id] || []), checkins: checkinsByBar[b.id] || [] })
+        mapBar(b, {
+          ...computeWait(reportsByBar[b.id] || []),
+          forecastNow: forecastByBar[b.id] || { avgWait: 0, n: 0 },
+          checkins: checkinsByBar[b.id] || [],
+        })
       ),
     };
+  },
+
+  // Full 7×24 forecast histogram for one bar (for the "best time to go" strip).
+  async forecast(id) {
+    const { data, error } = await supabase
+      .from('bar_forecast')
+      .select('dow, hour, avg_wait, n')
+      .eq('bar_id', id);
+    if (error) return { histogram: {} }; // view may not exist yet — prior covers it
+    const histogram = {};
+    for (const r of data || []) {
+      (histogram[r.dow] ||= {})[r.hour] = { avgWait: Number(r.avg_wait), n: r.n };
+    }
+    return { histogram };
   },
 
   async bar(id) {

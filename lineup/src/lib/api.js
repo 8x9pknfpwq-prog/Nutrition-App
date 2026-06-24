@@ -38,6 +38,7 @@ const realApi = {
   bars: () => request('/bars'),
   bar: (id) => request(`/bars/${id}`),
   waittime: (id) => request(`/bars/${id}/waittime`),
+  forecast: (id) => request(`/bars/${id}/forecast`),
   createBar: (body) => request('/bars', { method: 'POST', body }),
 
   // reports

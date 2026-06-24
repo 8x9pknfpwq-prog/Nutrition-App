@@ -1,22 +1,32 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { waitColor, waitLabel, avatarColor } from '../lib/wait.js';
+import { displayWait } from '../lib/busyness.js';
 import { IS_STATIC } from '../lib/mode.js';
 
 const NYC = { lng: -73.9942, lat: 40.7282, zoom: 14 };
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // Build the DOM node for a colored wait bubble pin.
+//   live data    → solid colored bubble with the number
+//   baseline est → outlined (white fill, colored text) "~N" so it reads as typical
 function barPinEl(bar) {
+  const { waitMin, isLive } = displayWait(bar);
+  const color = waitColor(waitMin);
   const el = document.createElement('div');
   el.className = 'lineup-pin';
-  el.style.cssText = `
+  const base = `
     display:flex;align-items:center;justify-content:center;
     min-width:34px;height:34px;padding:0 8px;border-radius:9999px;
-    background:${waitColor(bar.waitMin)};color:#fff;font-weight:600;font-size:12px;
-    font-family:'IBM Plex Mono',ui-monospace,monospace;
-    border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.25);`;
-  el.textContent = bar.waitMin == null ? '?' : waitLabel(bar.waitMin);
+    font-weight:600;font-size:12px;font-family:'IBM Plex Mono',ui-monospace,monospace;
+    box-shadow:0 4px 10px rgba(0,0,0,.25);`;
+  if (isLive) {
+    el.style.cssText = `${base}background:${color};color:#fff;border:2px solid #fff;`;
+    el.textContent = waitLabel(waitMin);
+  } else {
+    el.style.cssText = `${base}background:#fff;color:${color};border:2px solid ${color};`;
+    el.textContent = waitMin <= 0 ? '~0' : `~${waitMin}`;
+  }
   return el;
 }
 
@@ -62,6 +72,8 @@ function FallbackMap({ bars, friends, onSelectBar }) {
       )}
       {bars.map((b) => {
         const friend = b.checkins?.[0];
+        const { waitMin, isLive } = displayWait(b);
+        const color = waitColor(waitMin);
         return (
           <button
             key={b.id}
@@ -78,10 +90,14 @@ function FallbackMap({ bars, friends, onSelectBar }) {
               </span>
             )}
             <span
-              className="wait-time grid min-w-[34px] place-items-center rounded-full border-2 border-white px-2 py-1 text-xs font-semibold text-white shadow-pin"
-              style={{ background: waitColor(b.waitMin) }}
+              className="wait-time grid min-w-[34px] place-items-center rounded-full border-2 px-2 py-1 text-xs font-semibold shadow-pin"
+              style={
+                isLive
+                  ? { background: color, color: '#fff', borderColor: '#fff' }
+                  : { background: '#fff', color, borderColor: color }
+              }
             >
-              {b.waitMin == null ? '?' : waitLabel(b.waitMin)}
+              {isLive ? waitLabel(waitMin) : waitMin <= 0 ? '~0' : `~${waitMin}`}
             </span>
           </button>
         );
