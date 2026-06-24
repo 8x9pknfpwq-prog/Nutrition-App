@@ -93,6 +93,21 @@ export const supabaseApi = {
     await supabase.auth.signOut();
     return { ok: true };
   },
+  // Email a password-reset link. The link returns to the app with a recovery
+  // session in the URL; supabase-js fires PASSWORD_RECOVERY (handled in
+  // AuthContext) and the app shows the "set a new password" screen.
+  async requestPasswordReset(email, redirectTo) {
+    const { error } = await supabase.auth.resetPasswordForEmail((email || '').trim(), { redirectTo });
+    // Don't reveal whether an account exists — always report success.
+    if (error && error.status && error.status >= 500) throw new Error(error.message);
+    return { ok: true };
+  },
+  async updatePassword(password) {
+    if (!password || password.length < 6) throw apiErr('Password must be at least 6 characters');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
   async me() {
     const user = await getSupabaseUser();
     if (!user) throw apiErr('Not authenticated', 401);

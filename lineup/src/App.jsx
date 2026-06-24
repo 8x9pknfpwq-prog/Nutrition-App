@@ -12,6 +12,8 @@ import Friends from './pages/Friends.jsx';
 import Saved from './pages/Saved.jsx';
 import Profile from './pages/Profile.jsx';
 import Admin from './pages/Admin.jsx';
+import Legal from './pages/Legal.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 // Listens app-wide for friend_checkin events and surfaces them as toasts.
 function FriendCheckinListener() {
@@ -53,7 +55,9 @@ function AuthedApp() {
 }
 
 function Gate() {
-  const { user, loading } = useAuth();
+  const { user, loading, recovering } = useAuth();
+  // A password-recovery link takes priority over everything else.
+  if (recovering) return <ResetPassword />;
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-canvas">
@@ -71,7 +75,13 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <Router>
-          <Gate />
+          <Routes>
+            {/* Public, reachable while logged out (linked from the auth screen) */}
+            <Route path="/privacy" element={<Legal doc="privacy" />} />
+            <Route path="/terms" element={<Legal doc="terms" />} />
+            {/* Everything else flows through the auth gate */}
+            <Route path="/*" element={<Gate />} />
+          </Routes>
         </Router>
       </ToastProvider>
     </AuthProvider>

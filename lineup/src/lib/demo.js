@@ -332,6 +332,14 @@ export const demoApi = {
     demoSocket.disconnect();
     return { ok: true };
   },
+  // Auth emails can't be sent from a static demo — acknowledge politely.
+  async requestPasswordReset() {
+    return { ok: true };
+  },
+  async updatePassword(password) {
+    if (!password || password.length < 6) throw apiError('Password must be at least 6 characters');
+    return { ok: true };
+  },
   async me() {
     const u = sessionUserId && userById(sessionUserId);
     if (!u) throw apiError('Not authenticated', 401);

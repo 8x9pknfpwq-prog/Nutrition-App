@@ -53,6 +53,12 @@ export default function Profile() {
       >
         <LogOut size={18} /> Log out
       </button>
+
+      <p className="mt-6 text-center text-xs text-gray-400">
+        <Link to="/privacy" className="font-medium text-gray-500">Privacy</Link>
+        {' · '}
+        <Link to="/terms" className="font-medium text-gray-500">Terms</Link>
+      </p>
     </div>
   );
 }

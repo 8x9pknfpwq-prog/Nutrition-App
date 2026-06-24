@@ -77,6 +77,9 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           # Public Mapbox token (pk.*). Enables the live interactive map.
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          # Optional privacy-friendly analytics. Set repo Variable
+          # VITE_PLAUSIBLE_DOMAIN to your site's domain to turn it on.
+          VITE_PLAUSIBLE_DOMAIN: ${{ vars.VITE_PLAUSIBLE_DOMAIN }}
         run: npm run build
 
       - uses: actions/configure-pages@v5

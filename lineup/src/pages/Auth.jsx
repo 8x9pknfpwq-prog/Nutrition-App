@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 import { IS_DEMO as DEMO } from '../lib/mode.js';
 
 export default function Auth() {
-  const { login, signup } = useAuth();
+  const { login, signup, requestPasswordReset } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
+  const [forgot, setForgot] = useState(false);
+  const [sent, setSent] = useState(false);
   // Prefill the demo account so the published demo is one click to enter.
   const [email, setEmail] = useState(DEMO ? 'maya@lineup.app' : '');
   const [username, setUsername] = useState('');
@@ -18,14 +21,27 @@ export default function Auth() {
     setError('');
     setBusy(true);
     try {
-      if (tab === 'signup') await signup(email, username, password);
-      else await login(email, password);
+      if (forgot) {
+        await requestPasswordReset(email);
+        setSent(true);
+      } else if (tab === 'signup') {
+        await signup(email, username, password);
+      } else {
+        await login(email, password);
+      }
       // AuthProvider state update triggers the router to show the app.
     } catch (err) {
       setError(err.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  function switchTo(t) {
+    setTab(t);
+    setForgot(false);
+    setSent(false);
+    setError('');
   }
 
   return (
@@ -41,67 +57,132 @@ export default function Auth() {
       </div>
 
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-card">
-        {/* Tabs */}
-        <div className="mb-5 flex rounded-full bg-canvas p-1">
-          {['signup', 'login'].map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTab(t); setError(''); }}
-              className={`flex-1 rounded-full py-2 text-sm font-semibold capitalize transition-colors ${
-                tab === t ? 'bg-ink text-white' : 'text-gray-500'
-              }`}
-            >
-              {t === 'signup' ? 'Sign Up' : 'Log In'}
-            </button>
-          ))}
-        </div>
+        {forgot ? (
+          // --- Forgot-password ---
+          sent ? (
+            <div className="text-center">
+              <h2 className="text-base font-bold text-ink">Check your email</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                If an account exists for <span className="font-medium text-ink">{email}</span>, we’ve sent
+                a link to reset your password.
+              </p>
+              <button
+                onClick={() => switchTo('login')}
+                className="mt-5 w-full rounded-xl bg-ink py-3.5 text-sm font-semibold text-white"
+              >
+                Back to log in
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="space-y-3">
+              <h2 className="text-base font-bold text-ink">Reset your password</h2>
+              <p className="text-sm text-gray-500">We’ll email you a link to set a new one.</p>
+              <input
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+              />
+              {error && <p className="text-sm font-medium text-wait-red">{error}</p>}
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-xl bg-ink py-3.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {busy ? 'Sending…' : 'Send reset link'}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTo('login')}
+                className="w-full py-1 text-center text-sm font-medium text-gray-500"
+              >
+                Back to log in
+              </button>
+            </form>
+          )
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="mb-5 flex rounded-full bg-canvas p-1">
+              {['signup', 'login'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => switchTo(t)}
+                  className={`flex-1 rounded-full py-2 text-sm font-semibold capitalize transition-colors ${
+                    tab === t ? 'bg-ink text-white' : 'text-gray-500'
+                  }`}
+                >
+                  {t === 'signup' ? 'Sign Up' : 'Log In'}
+                </button>
+              ))}
+            </div>
 
-        <form onSubmit={submit} className="space-y-3">
-          <input
-            type="email"
-            placeholder="Email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
-          />
-          {tab === 'signup' && (
-            <input
-              type="text"
-              placeholder="Username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
-            />
-          )}
-          <input
-            type="password"
-            placeholder="Password"
-            autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
-          />
+            <form onSubmit={submit} className="space-y-3">
+              <input
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+              />
+              {tab === 'signup' && (
+                <input
+                  type="text"
+                  placeholder="Username"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+                />
+              )}
+              <input
+                type="password"
+                placeholder="Password"
+                autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+              />
 
-          {error && <p className="text-sm font-medium text-wait-red">{error}</p>}
+              {error && <p className="text-sm font-medium text-wait-red">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-xl bg-ink py-3.5 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {busy ? 'Please wait…' : tab === 'signup' ? 'Create account' : 'Log in'}
-          </button>
-        </form>
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-xl bg-ink py-3.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {busy ? 'Please wait…' : tab === 'signup' ? 'Create account' : 'Log in'}
+              </button>
+            </form>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
-          Try the demo: <span className="font-medium text-gray-500">maya@lineup.app</span> / password123
-        </p>
+            {tab === 'login' && (
+              <button
+                onClick={() => { setForgot(true); setError(''); }}
+                className="mt-3 w-full text-center text-sm font-medium text-gray-500"
+              >
+                Forgot password?
+              </button>
+            )}
+
+            <p className="mt-4 text-center text-xs text-gray-400">
+              Try the demo: <span className="font-medium text-gray-500">maya@lineup.app</span> / password123
+            </p>
+          </>
+        )}
       </div>
+
+      <p className="mt-6 text-center text-xs text-gray-400">
+        <Link to="/privacy" className="font-medium text-gray-500">Privacy</Link>
+        {' · '}
+        <Link to="/terms" className="font-medium text-gray-500">Terms</Link>
+      </p>
     </div>
   );
 }

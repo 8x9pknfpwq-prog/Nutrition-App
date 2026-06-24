@@ -33,6 +33,8 @@ const realApi = {
   login: (body) => request('/auth/login', { method: 'POST', body }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
+  requestPasswordReset: (email) => request('/auth/reset', { method: 'POST', body: { email } }),
+  updatePassword: (password) => request('/auth/password', { method: 'POST', body: { password } }),
 
   // bars
   bars: () => request('/bars'),
