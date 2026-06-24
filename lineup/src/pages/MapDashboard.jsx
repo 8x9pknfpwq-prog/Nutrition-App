@@ -6,7 +6,7 @@ import FilterPills from '../components/FilterPills.jsx';
 import CheckInSheet from '../components/CheckInSheet.jsx';
 import AddPlaceSheet from '../components/AddPlaceSheet.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
-import { Plus } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useSocket } from '../context/SocketContext.jsx';
 
@@ -15,6 +15,7 @@ export default function MapDashboard() {
   const [bars, setBars] = useState([]);
   const [friends, setFriends] = useState([]);
   const [filters, setFilters] = useState([]);
+  const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [adding, setAdding] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -57,13 +58,15 @@ export default function MapDashboard() {
     setFilters((f) => (f.includes(key) ? f.filter((x) => x !== key) : [...f, key]));
 
   const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return bars.filter((b) => {
+      if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
       if (filters.includes('under20') && !(b.waitMin != null && b.waitMin < 20)) return false;
       if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
       // "Open now" is a soft filter — all seeded bars are treated as open.
       return true;
     });
-  }, [bars, filters]);
+  }, [bars, filters, query]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-canvas">
@@ -89,9 +92,28 @@ export default function MapDashboard() {
       <BottomSheet peekHeight={340}>
         <div className="pt-3">
           <h1 className="text-xl font-bold text-ink">
-            <span className="stat-number">{visible.length}</span> spots nearby
+            <span className="stat-number">{visible.length}</span>{' '}
+            {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : 'spots nearby'}
           </h1>
-          <p className="text-sm text-gray-500">East Village · Lower East Side</p>
+          <p className="truncate text-sm text-gray-500">
+            {query.trim() ? `for “${query.trim()}”` : 'East Village · Lower East Side'}
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+          <Search size={16} className="shrink-0 text-gray-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search bars by name or address"
+            className="flex-1 bg-transparent py-2.5 text-sm outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="shrink-0 text-gray-400" aria-label="Clear search">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <div className="mt-3">
@@ -102,7 +124,9 @@ export default function MapDashboard() {
           {loading ? (
             <p className="py-10 text-center text-sm text-gray-400">Loading bars…</p>
           ) : visible.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">No bars match your filters.</p>
+            <p className="py-10 text-center text-sm text-gray-400">
+              {query.trim() ? `No bars found for “${query.trim()}”.` : 'No bars match your filters.'}
+            </p>
           ) : (
             visible.map((bar) => (
               <BarCard key={bar.id} bar={bar} onClick={() => setSelected(bar)} />
