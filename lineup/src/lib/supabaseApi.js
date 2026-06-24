@@ -5,6 +5,7 @@
 // mapped to the camelCase shapes the components expect.
 import { supabase } from './supabase.js';
 import { computeWait } from './waittime.js';
+import { geocodePlace } from './geocode.js';
 
 function apiErr(message, status = 400) {
   const e = new Error(message);
@@ -13,6 +14,18 @@ function apiErr(message, status = 400) {
 }
 
 const since90 = () => new Date(Date.now() - 90 * 60 * 1000).toISOString();
+
+const NYC_CENTER = { lat: 40.7282, lng: -73.9942 };
+function milesFromCenter(lat, lng) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(lat - NYC_CENTER.lat);
+  const dLng = toRad(lng - NYC_CENTER.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(NYC_CENTER.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)) * 10) / 10;
+}
 
 async function myId() {
   const { data } = await supabase.auth.getSession();
@@ -146,21 +159,42 @@ export const supabaseApi = {
     return computeWait((data || []).map((r) => ({ waitMin: r.wait_min, createdAt: r.created_at })));
   },
 
+  // Submit a PENDING suggestion. Geocoded via Mapbox for a map pin; an admin
+  // approves it before it goes live. (No Google verification — admin verifies.)
   async createBar({ name, address }) {
-    const { data, error } = await supabase.functions.invoke('submit-place', { body: { name, address } });
-    if (error) {
-      let msg = error.message || 'Could not add this place';
-      try {
-        if (error.context && typeof error.context.json === 'function') {
-          const j = await error.context.json();
-          if (j?.error) msg = j.error;
-        }
-      } catch {
-        // keep default message
-      }
-      throw new Error(msg);
+    const id = await myId();
+    if (!id) throw apiErr('Not authenticated', 401);
+    name = (name || '').trim();
+    address = (address || '').trim();
+    if (!name || !address) throw apiErr('name and address are required');
+
+    let geo;
+    try {
+      geo = await geocodePlace(`${name}, ${address}`);
+    } catch (e) {
+      throw apiErr(e.message || 'Address lookup failed');
     }
-    return { bar: mapBar(data.bar) };
+    if (!geo) throw apiErr("We couldn't find that address — double-check it.", 422);
+
+    const row = {
+      name,
+      address,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      rating: 0,
+      distance: milesFromCenter(geo.latitude, geo.longitude),
+      verified: false,
+      approved: false,
+      submitted_by: id,
+    };
+    // Don't .select() back — RLS hides unapproved rows, so reading it returns
+    // nothing. Insert, then return a local object for the confirmation toast.
+    const { error } = await supabase.from('bars').insert(row);
+    if (error) {
+      if (error.code === '23505') throw apiErr('That place is already on the map or pending review.', 409);
+      throw new Error(error.message);
+    }
+    return { bar: mapBar({ id: 'pending', ...row }) };
   },
 
   // ── reports ───────────────────────────────────────────────────────────────

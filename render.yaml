@@ -2,10 +2,9 @@
 # Deploys the Node/Express + Socket.io server (which also serves the built React
 # client) plus a managed PostgreSQL database. See lineup/README.md → "Hosting".
 #
-# After importing this blueprint in Render, set two secret env vars in the
-# dashboard (they're marked sync:false below):
+# After importing this blueprint in Render, set this secret env var in the
+# dashboard (marked sync:false below):
 #   - VITE_MAPBOX_TOKEN     your Mapbox PUBLIC token (pk.*)   [build-time]
-#   - GOOGLE_MAPS_API_KEY   Google Places API key            [runtime]
 
 databases:
   - name: nyc-lines-db
@@ -34,5 +33,3 @@ services:
         generateValue: true # Render generates a strong random secret
       - key: VITE_MAPBOX_TOKEN
         sync: false # set in dashboard — Mapbox public token (pk.*)
-      - key: GOOGLE_MAPS_API_KEY
-        sync: false # set in dashboard — Google Places API key
