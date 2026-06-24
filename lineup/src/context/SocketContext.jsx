@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
 import { DEMO, demoSocket } from '../lib/demo.js';
+import { IS_SUPABASE } from '../lib/mode.js';
 
 const SocketContext = createContext(null);
 
@@ -18,6 +19,13 @@ export function SocketProvider({ children }) {
         socketRef.current = null;
         setSocket(null);
       }
+      return;
+    }
+
+    // Supabase mode: realtime is added in Stage 2b. For now, no live socket
+    // (the app refetches after actions), so components see a null socket.
+    if (IS_SUPABASE) {
+      setSocket(null);
       return;
     }
 

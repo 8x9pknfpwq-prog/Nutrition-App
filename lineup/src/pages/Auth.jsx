@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
-import { DEMO } from '../lib/demo.js';
+import { IS_DEMO as DEMO } from '../lib/mode.js';
 
 export default function Auth() {
   const { login, signup } = useAuth();

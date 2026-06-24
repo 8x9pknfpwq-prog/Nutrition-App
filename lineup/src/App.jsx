@@ -1,6 +1,6 @@
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { DEMO } from './lib/demo.js';
+import { IS_STATIC } from './lib/mode.js';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SocketProvider, useSocket } from './context/SocketContext.jsx';
 import { ToastProvider, useToast } from './context/ToastContext.jsx';
@@ -64,7 +64,7 @@ function Gate() {
 
 export default function App() {
   // HashRouter on static hosts (GitHub Pages) avoids 404s on refresh/deep links.
-  const Router = DEMO ? HashRouter : BrowserRouter;
+  const Router = IS_STATIC ? HashRouter : BrowserRouter;
   return (
     <AuthProvider>
       <ToastProvider>

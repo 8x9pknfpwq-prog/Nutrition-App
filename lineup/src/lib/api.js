@@ -1,5 +1,7 @@
 // Tiny fetch wrapper. All requests send cookies (httpOnly JWT) and parse JSON.
 import { DEMO, demoApi } from './demo.js';
+import { SUPABASE_READY } from './supabase.js';
+import { supabaseApi } from './supabaseApi.js';
 
 async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch(`/api${path}`, {
@@ -53,4 +55,5 @@ const realApi = {
   myStats: () => request('/users/me/stats'),
 };
 
-export const api = DEMO ? demoApi : realApi;
+// Supabase (real shared backend) wins when configured; else demo; else server.
+export const api = SUPABASE_READY ? supabaseApi : DEMO ? demoApi : realApi;
