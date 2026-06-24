@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LogOut, ShieldCheck, ChevronRight } from 'lucide-react';
 import Avatar from '../components/Avatar.jsx';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -33,9 +34,22 @@ export default function Profile() {
         </div>
       </div>
 
+      {user.isAdmin && (
+        <Link
+          to="/admin"
+          className="mt-7 flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-card"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-ink/5 text-ink">
+            <ShieldCheck size={18} />
+          </span>
+          <span className="flex-1 text-sm font-semibold text-ink">Admin · Pending approvals</span>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+      )}
+
       <button
         onClick={logout}
-        className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white py-3.5 text-sm font-semibold text-wait-red shadow-card"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white py-3.5 text-sm font-semibold text-wait-red shadow-card"
       >
         <LogOut size={18} /> Log out
       </button>

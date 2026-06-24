@@ -86,7 +86,11 @@ function buildState() {
     }
   }
   return {
-    bars: BARS.map((b) => ({ ...b, verified: true, approved: true })),
+    bars: [
+      ...BARS.map((b) => ({ ...b, verified: true, approved: true })),
+      // A sample pending suggestion so the demo's Admin screen isn't empty.
+      { id: 'bar_pending_demo', name: 'Bleecker Street Bar', address: '58 Bleecker St, New York', latitude: 40.7259, longitude: -73.9956, rating: 0, distance: 0.9, verified: false, approved: false },
+    ],
     users: USERS.map((u) => ({ ...u })),
     reports,
     friendships: [
@@ -146,7 +150,7 @@ function computeWait(reports, now = Date.now()) {
 
 const reportsForBar = (barId) => db.reports.filter((r) => r.barId === barId);
 const userById = (id) => db.users.find((u) => u.id === id);
-const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, createdAt: u.createdAt || new Date() });
+const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, createdAt: u.createdAt || new Date(), isAdmin: true });
 
 function acceptedFriendIds(userId) {
   return db.friendships
@@ -384,5 +388,24 @@ export const demoApi = {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     const checkIns = db.reports.filter((r) => r.userId === sessionUserId).length;
     return { checkIns, friends: acceptedFriendIds(sessionUserId).length };
+  },
+  async pendingBars() {
+    return {
+      pending: db.bars
+        .filter((b) => !b.approved)
+        .map((b) => ({ id: b.id, name: b.name, address: b.address, createdAt: b.createdAt || new Date(), submittedBy: null })),
+    };
+  },
+  async approveBar(id) {
+    const b = db.bars.find((x) => x.id === id);
+    if (b) b.approved = true;
+    persistUserBars();
+    return { ok: true };
+  },
+  async rejectBar(id) {
+    const i = db.bars.findIndex((x) => x.id === id);
+    if (i >= 0) db.bars.splice(i, 1);
+    persistUserBars();
+    return { ok: true };
   },
 };

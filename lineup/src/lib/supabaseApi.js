@@ -57,7 +57,7 @@ export async function getSupabaseUser() {
   if (!s) return null;
   const { data: prof } = await supabase
     .from('profiles')
-    .select('username, avatar_initial')
+    .select('username, avatar_initial, is_admin')
     .eq('id', s.user.id)
     .single();
   const email = s.user.email || '';
@@ -66,6 +66,7 @@ export async function getSupabaseUser() {
     email,
     username: prof?.username || email.split('@')[0],
     avatarInitial: prof?.avatar_initial || (email[0] || '?').toUpperCase(),
+    isAdmin: prof?.is_admin === true,
   };
 }
 
@@ -326,5 +327,34 @@ export const supabaseApi = {
       supabase.from('friendships').select('id').eq('status', 'accepted').or(`from_user.eq.${id},to_user.eq.${id}`),
     ]);
     return { checkIns: count || 0, friends: (fs || []).length };
+  },
+
+  // ── admin ─────────────────────────────────────────────────────────────────
+  async pendingBars() {
+    const { data, error } = await supabase
+      .from('bars')
+      .select('id, name, address, latitude, longitude, created_at, profiles:submitted_by(username)')
+      .eq('approved', false)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return {
+      pending: (data || []).map((b) => ({
+        id: b.id,
+        name: b.name,
+        address: b.address,
+        createdAt: b.created_at,
+        submittedBy: b.profiles?.username || null,
+      })),
+    };
+  },
+  async approveBar(id) {
+    const { error } = await supabase.from('bars').update({ approved: true, verified: true }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+  async rejectBar(id) {
+    const { error } = await supabase.from('bars').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   },
 };

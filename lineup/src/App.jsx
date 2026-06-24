@@ -11,6 +11,7 @@ import MapDashboard from './pages/MapDashboard.jsx';
 import Friends from './pages/Friends.jsx';
 import Saved from './pages/Saved.jsx';
 import Profile from './pages/Profile.jsx';
+import Admin from './pages/Admin.jsx';
 
 // Listens app-wide for friend_checkin events and surfaces them as toasts.
 function FriendCheckinListener() {
@@ -42,6 +43,7 @@ function AuthedApp() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/saved" element={<Saved />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <TabBar />
