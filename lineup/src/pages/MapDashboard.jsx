@@ -6,19 +6,44 @@ import FilterPills from '../components/FilterPills.jsx';
 import CheckInSheet from '../components/CheckInSheet.jsx';
 import AddPlaceSheet from '../components/AddPlaceSheet.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X, LocateFixed } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useSocket } from '../context/SocketContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 
 export default function MapDashboard() {
   const socket = useSocket();
+  const { showToast } = useToast();
   const [bars, setBars] = useState([]);
   const [friends, setFriends] = useState([]);
   const [filters, setFilters] = useState([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Center the map on the user. manual=true surfaces errors (button press);
+  // the silent attempt on load won't nag if permission isn't granted.
+  const locate = useCallback(
+    (manual = false) => {
+      if (!navigator.geolocation) {
+        if (manual) showToast({ title: 'Location unavailable on this device' });
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => {
+          if (manual) showToast({ title: 'Location is off', body: 'Allow location access to center the map on you.' });
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    },
+    [showToast]
+  );
+
+  // Try once on load (silent if the user hasn't granted permission yet).
+  useEffect(() => { locate(false); }, [locate]);
 
   const load = useCallback(async () => {
     const [b, f] = await Promise.all([api.bars(), api.friends().catch(() => ({ friends: [] }))]);
@@ -72,7 +97,7 @@ export default function MapDashboard() {
     <div className="relative h-screen w-full overflow-hidden bg-canvas">
       {/* Map */}
       <div className="absolute inset-0">
-        <MapView bars={bars} friends={friends} onSelectBar={setSelected} />
+        <MapView bars={bars} friends={friends} onSelectBar={setSelected} userLocation={userLocation} />
       </div>
 
       {/* Brand header — left-aligned wordmark over the map */}
@@ -80,12 +105,21 @@ export default function MapDashboard() {
         <div className="pointer-events-auto rounded-2xl bg-canvas/85 px-3 py-1.5 shadow-card backdrop-blur">
           <NYCLinesLogo variant="light" height={32} />
         </div>
-        <button
-          onClick={() => setAdding(true)}
-          className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform"
-        >
-          <Plus size={18} /> Suggest
-        </button>
+        <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            onClick={() => locate(true)}
+            aria-label="Center on my location"
+            className="grid h-10 w-10 place-items-center rounded-full bg-canvas/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+          >
+            <LocateFixed size={18} />
+          </button>
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform"
+          >
+            <Plus size={18} /> Suggest
+          </button>
+        </div>
       </header>
 
       {/* Bottom sheet */}

@@ -90,10 +90,11 @@ function FallbackMap({ bars, friends, onSelectBar }) {
   );
 }
 
-export default function MapView({ bars, friends = [], onSelectBar }) {
+export default function MapView({ bars, friends = [], onSelectBar, userLocation }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const userMarkerRef = useRef(null);
 
   // Init Mapbox once.
   useEffect(() => {
@@ -138,6 +139,26 @@ export default function MapView({ bars, friends = [], onSelectBar }) {
         markersRef.current.push(marker);
       });
   }, [bars, friends, onSelectBar]);
+
+  // Center on the user's location and drop a "you are here" blue dot.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!TOKEN || !map || !userLocation) return;
+    const apply = () => {
+      const lngLat = [userLocation.longitude, userLocation.latitude];
+      if (!userMarkerRef.current) {
+        const el = document.createElement('div');
+        el.style.cssText =
+          'width:18px;height:18px;border-radius:9999px;background:#2D7FF9;border:3px solid #fff;box-shadow:0 0 0 6px rgba(45,127,249,0.25);';
+        userMarkerRef.current = new mapboxgl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+      } else {
+        userMarkerRef.current.setLngLat(lngLat);
+      }
+      map.flyTo({ center: lngLat, zoom: 14, essential: true });
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once('load', apply);
+  }, [userLocation]);
 
   if (!TOKEN) {
     return <FallbackMap bars={bars} friends={friends} onSelectBar={onSelectBar} />;
