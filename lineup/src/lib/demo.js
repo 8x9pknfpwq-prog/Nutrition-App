@@ -71,12 +71,16 @@ const BARS = [
   { id: 'bar_holywater', name: 'Holywater', address: '112 Reade St', latitude: 40.716, longitude: -74.009, rating: 4.4, distance: 1.1 },
 ];
 
-// PLACEHOLDER froyo venues — replace with the real seed list.
+// Froyo venues — all NYC locations of Go Greek Yogurt, Culture, Myka, Madison
+// Fare. Coordinates are best-effort from each street address (nudge in the
+// Supabase Table Editor if a pin is slightly off).
 const FROYO = [
-  { id: 'froyo_16handles', name: '16 Handles', address: '153 2nd Ave', latitude: 40.7294, longitude: -73.9868, rating: 4.4, distance: 0.3 },
-  { id: 'froyo_2', name: 'Froyo placeholder 2', address: 'St Marks Pl', latitude: 40.7276, longitude: -73.9899, rating: 4.2, distance: 0.4 },
-  { id: 'froyo_3', name: 'Froyo placeholder 3', address: 'Avenue A', latitude: 40.7261, longitude: -73.9852, rating: 4.3, distance: 0.5 },
-  { id: 'froyo_4', name: 'Froyo placeholder 4', address: 'Orchard St', latitude: 40.7242, longitude: -73.9924, rating: 4.1, distance: 0.5 },
+  { id: 'froyo_gogreek', name: 'Go Greek Yogurt', address: '683 Broadway', latitude: 40.7276, longitude: -73.9937, rating: 4.5, distance: 0.1 },
+  { id: 'froyo_culture_8th', name: 'Culture: An American Yogurt Co.', address: '60 W 8th St', latitude: 40.7330, longitude: -73.9980, rating: 4.4, distance: 0.4 },
+  { id: 'froyo_culture_bk', name: 'Culture (Park Slope)', address: '331 5th Ave, Brooklyn', latitude: 40.6718, longitude: -73.9875, rating: 4.4, distance: 4.0 },
+  { id: 'froyo_myka', name: 'Myka', address: '159 7th Ave S', latitude: 40.7360, longitude: -74.0028, rating: 4.5, distance: 0.6 },
+  { id: 'froyo_madison_ues', name: 'Madison Fare (Upper East Side)', address: '1225 Madison Ave', latitude: 40.7825, longitude: -73.9558, rating: 4.3, distance: 3.8 },
+  { id: 'froyo_madison_8th', name: 'Madison Fare (Greenwich Village)', address: '1 W 8th St', latitude: 40.7323, longitude: -73.9968, rating: 4.3, distance: 0.4 },
 ];
 
 const USERS = [
