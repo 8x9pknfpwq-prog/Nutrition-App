@@ -453,6 +453,14 @@ export const supabaseApi = {
     if (error) throw new Error(error.message);
     return { imageUrl: imageUrl || null };
   },
+  // Admin: auto-fill photos + hours from Foursquare (via the enrich-venues
+  // Edge Function). Pass {force:true} to overwrite existing values.
+  async enrichVenues(opts = {}) {
+    const { data, error } = await supabase.functions.invoke('enrich-venues', { body: opts });
+    if (error) throw new Error(error.message || 'Enrichment failed');
+    if (data?.error) throw new Error(data.error);
+    return data; // { updated, results }
+  },
   async rejectBar(id) {
     const { error } = await supabase.from('bars').delete().eq('id', id);
     if (error) throw new Error(error.message);

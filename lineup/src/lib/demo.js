@@ -549,6 +549,9 @@ export const demoApi = {
     persistUserBars();
     return { imageUrl: imageUrl || null };
   },
+  async enrichVenues() {
+    throw apiError('Auto-fill from Foursquare runs on the live app (needs the Foursquare key).');
+  },
   async rejectBar(id) {
     const i = db.bars.findIndex((x) => x.id === id);
     if (i >= 0) db.bars.splice(i, 1);

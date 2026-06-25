@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Check, X, Clock } from 'lucide-react';
+import { Check, X, Clock, Sparkles } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -19,6 +19,20 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(null); // venue being given hours
+  const [enriching, setEnriching] = useState(false);
+
+  async function enrich() {
+    setEnriching(true);
+    try {
+      const { updated } = await api.enrichVenues();
+      showToast({ title: 'Auto-fill complete', body: `${updated} venue${updated === 1 ? '' : 's'} updated` });
+      load();
+    } catch (e) {
+      showToast({ title: 'Auto-fill failed', body: e.message });
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,10 +131,19 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Live venues — set/adjust opening hours */}
-      <h2 className="mt-8 text-lg font-bold text-ink">Venue hours</h2>
+      {/* Live venues — photos + hours */}
+      <div className="mt-8 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-ink">Venues</h2>
+        <button
+          onClick={enrich}
+          disabled={enriching || loading}
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-xs font-semibold text-white disabled:opacity-50"
+        >
+          <Sparkles size={14} /> {enriching ? 'Filling…' : 'Auto-fill photos & hours'}
+        </button>
+      </div>
       <p className="mt-0.5 text-sm text-gray-500">
-        {loading ? 'Loading…' : 'Tap a venue to set its real opening hours'}
+        {loading ? 'Loading…' : 'Tap a venue to edit hours, or add a photo. Auto-fill pulls both from Foursquare.'}
       </p>
       <div className="mt-3 space-y-2">
         {venues.map((v) => {

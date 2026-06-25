@@ -45,6 +45,7 @@ const realApi = {
   forecast: (id) => request(`/bars/${id}/forecast`),
   setVenueHours: (id, hours) => request(`/bars/${id}/hours`, { method: 'PUT', body: { hours } }),
   setVenueImageUrl: (id, imageUrl) => request(`/bars/${id}/image`, { method: 'PUT', body: { imageUrl } }),
+  enrichVenues: (opts) => request('/admin/enrich', { method: 'POST', body: opts || {} }),
   async uploadVenuePhoto(id, file) {
     const form = new FormData();
     form.append('photo', file);
