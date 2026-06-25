@@ -1,6 +1,7 @@
-import { Star, MapPin, BadgeCheck } from 'lucide-react';
+import { Star, BadgeCheck } from 'lucide-react';
 import WaitBadge from './WaitBadge.jsx';
 import Avatar from './Avatar.jsx';
+import VenuePhoto from './VenuePhoto.jsx';
 import { timeAgo } from '../lib/wait.js';
 import { displayWait, busynessLabel } from '../lib/busyness.js';
 
@@ -13,9 +14,9 @@ export default function BarCard({ bar, onClick }) {
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-card active:scale-[0.99] transition-transform"
     >
-      {/* Photo placeholder */}
-      <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-stone-200 to-stone-300">
-        <MapPin size={20} className="text-stone-400" />
+      {/* Photo (or branded placeholder) */}
+      <div className="relative shrink-0">
+        <VenuePhoto bar={bar} size={64} />
         {friend && (
           <div className="absolute -bottom-1 -right-1">
             <Avatar initial={friend.avatarInitial} seed={friend.username} size={24} ring />

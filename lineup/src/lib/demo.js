@@ -522,7 +522,7 @@ export const demoApi = {
     return {
       pending: db.bars
         .filter((b) => !b.approved)
-        .map((b) => ({ id: b.id, name: b.name, address: b.address, venueType: b.venueType || 'bar', hours: b.hours || null, createdAt: b.createdAt || new Date(), submittedBy: null })),
+        .map((b) => ({ id: b.id, name: b.name, address: b.address, venueType: b.venueType || 'bar', hours: b.hours || null, imageUrl: b.imageUrl || null, createdAt: b.createdAt || new Date(), submittedBy: null })),
     };
   },
   async approveBar(id) {
@@ -536,6 +536,18 @@ export const demoApi = {
     if (b) b.hours = hours;
     persistUserBars();
     return { ok: true };
+  },
+  async uploadVenuePhoto(id, file) {
+    const b = db.bars.find((x) => x.id === id);
+    const imageUrl = URL.createObjectURL(file); // session-only object URL in the demo
+    if (b) b.imageUrl = imageUrl;
+    return { imageUrl };
+  },
+  async setVenueImageUrl(id, imageUrl) {
+    const b = db.bars.find((x) => x.id === id);
+    if (b) b.imageUrl = imageUrl || null;
+    persistUserBars();
+    return { imageUrl: imageUrl || null };
   },
   async rejectBar(id) {
     const i = db.bars.findIndex((x) => x.id === id);

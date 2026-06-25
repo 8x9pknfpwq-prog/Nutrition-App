@@ -44,6 +44,14 @@ const realApi = {
   waittime: (id) => request(`/bars/${id}/waittime`),
   forecast: (id) => request(`/bars/${id}/forecast`),
   setVenueHours: (id, hours) => request(`/bars/${id}/hours`, { method: 'PUT', body: { hours } }),
+  setVenueImageUrl: (id, imageUrl) => request(`/bars/${id}/image`, { method: 'PUT', body: { imageUrl } }),
+  async uploadVenuePhoto(id, file) {
+    const form = new FormData();
+    form.append('photo', file);
+    const res = await fetch(`/api/bars/${id}/photo`, { method: 'POST', credentials: 'include', body: form });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+  },
   createBar: (body) => request('/bars', { method: 'POST', body }),
 
   // reports

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Check, X, MapPin, Clock } from 'lucide-react';
+import { Check, X, Clock } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { timeAgo } from '../lib/wait.js';
 import { openStatus, hasRealHours } from '../lib/busyness.js';
 import HoursEditor from '../components/HoursEditor.jsx';
+import VenuePhoto from '../components/VenuePhoto.jsx';
+import PhotoUpload from '../components/PhotoUpload.jsx';
 
 // Admin-only review queue: approve a suggestion to make it live, or reject it.
 export default function Admin() {
@@ -55,6 +57,12 @@ export default function Admin() {
     }
   }
 
+  // Reflect a new photo in both the pending and live-venue lists.
+  const setImage = (id, imageUrl) => {
+    setPending((p) => p.map((b) => (b.id === id ? { ...b, imageUrl } : b)));
+    setVenues((vs) => vs.map((b) => (b.id === id ? { ...b, imageUrl } : b)));
+  };
+
   return (
     <div className="mx-auto min-h-screen max-w-md bg-canvas px-4 pb-24 pt-5">
       <h1 className="text-2xl font-extrabold text-ink">Pending approvals</h1>
@@ -70,9 +78,7 @@ export default function Admin() {
         {pending.map((b) => (
           <div key={b.id} className="rounded-2xl bg-white p-3.5 shadow-card">
             <div className="flex items-start gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-stone-200 to-stone-300">
-                <MapPin size={18} className="text-stone-400" />
-              </div>
+              <VenuePhoto bar={b} size={48} />
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-[15px] font-semibold text-ink">{b.name}</h3>
                 <p className="truncate text-xs text-gray-500">{b.address}</p>
@@ -82,12 +88,15 @@ export default function Admin() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setEditing(b)}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-black/10 bg-white py-2 text-xs font-semibold text-ink"
-            >
-              <Clock size={14} /> {b.hours ? 'Edit hours' : 'Set hours'}
-            </button>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => setEditing(b)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-black/10 bg-white py-2 text-xs font-semibold text-ink"
+              >
+                <Clock size={14} /> {b.hours ? 'Edit hours' : 'Set hours'}
+              </button>
+              <PhotoUpload venue={b} onUploaded={(url) => setImage(b.id, url)} label={b.imageUrl ? 'Change photo' : 'Add photo'} />
+            </div>
             <div className="mt-2 flex gap-2">
               <button
                 onClick={() => act(b.id, 'approve')}
@@ -117,22 +126,17 @@ export default function Admin() {
         {venues.map((v) => {
           const status = openStatus(v);
           return (
-            <button
-              key={v.id}
-              onClick={() => setEditing(v)}
-              className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-card"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/5 text-ink">
-                <Clock size={16} />
-              </span>
-              <span className="min-w-0 flex-1">
+            <div key={v.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
+              <VenuePhoto bar={v} size={44} />
+              <button onClick={() => setEditing(v)} className="min-w-0 flex-1 text-left">
                 <span className="block truncate text-sm font-semibold text-ink">{v.name}</span>
                 <span className={`block truncate text-xs ${status.open ? 'text-wait-green' : 'text-gray-400'}`}>
                   {status.text}
                   {!hasRealHours(v) && ' · default hours'}
                 </span>
-              </span>
-            </button>
+              </button>
+              <PhotoUpload venue={v} onUploaded={(url) => setImage(v.id, url)} label={v.imageUrl ? 'Change' : 'Photo'} />
+            </div>
           );
         })}
       </div>

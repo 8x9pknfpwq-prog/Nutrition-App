@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Check } from 'lucide-react';
 import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
+import VenuePhoto from './VenuePhoto.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { waitColor, statusText } from '../lib/wait.js';
 import {
@@ -139,8 +140,10 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <VenuePhoto bar={bar} size={48} />
+            <div className="min-w-0">
             <h2 className="truncate text-xl font-bold text-ink">{bar.name}</h2>
             <p className="truncate text-sm text-gray-500">{bar.address}</p>
             {(() => {
@@ -151,6 +154,7 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
                 </p>
               );
             })()}
+            </div>
           </div>
           <button onClick={onClose} className="rounded-full bg-black/5 p-2 text-gray-500">
             <X size={18} />

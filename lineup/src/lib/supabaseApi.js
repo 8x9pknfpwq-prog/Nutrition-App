@@ -45,6 +45,7 @@ function mapBar(b, extra = {}) {
     verified: b.verified,
     venueType: b.venue_type ?? 'bar',
     hours: b.hours ?? null,
+    imageUrl: b.image_url ?? null,
     approved: b.approved ?? true,
     googlePlaceId: b.google_place_id ?? null,
     waitMin: extra.waitMin ?? null,
@@ -404,7 +405,7 @@ export const supabaseApi = {
   async pendingBars() {
     const { data, error } = await supabase
       .from('bars')
-      .select('id, name, address, latitude, longitude, venue_type, hours, created_at, profiles:submitted_by(username)')
+      .select('id, name, address, latitude, longitude, venue_type, hours, image_url, created_at, profiles:submitted_by(username)')
       .eq('approved', false)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
@@ -415,6 +416,7 @@ export const supabaseApi = {
         address: b.address,
         venueType: b.venue_type ?? 'bar',
         hours: b.hours ?? null,
+        imageUrl: b.image_url ?? null,
         createdAt: b.created_at,
         submittedBy: b.profiles?.username || null,
       })),
@@ -430,6 +432,26 @@ export const supabaseApi = {
     const { error } = await supabase.from('bars').update({ hours }).eq('id', id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  },
+  // Admin: upload a photo to Storage and point the venue at it.
+  async uploadVenuePhoto(id, file) {
+    const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('venue-photos')
+      .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+    if (upErr) throw new Error(upErr.message);
+    const { data } = supabase.storage.from('venue-photos').getPublicUrl(path);
+    const imageUrl = data.publicUrl;
+    const { error } = await supabase.from('bars').update({ image_url: imageUrl }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { imageUrl };
+  },
+  // Admin: point a venue at an already-hosted image URL.
+  async setVenueImageUrl(id, imageUrl) {
+    const { error } = await supabase.from('bars').update({ image_url: imageUrl || null }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { imageUrl: imageUrl || null };
   },
   async rejectBar(id) {
     const { error } = await supabase.from('bars').delete().eq('id', id);
