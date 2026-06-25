@@ -5,8 +5,9 @@ import { useToast } from '../context/ToastContext.jsx';
 
 // Submit a new place. The server verifies it against Google Maps before saving,
 // so only real spots get added.
-export default function AddPlaceSheet({ onClose, onAdded }) {
+export default function AddPlaceSheet({ onClose, onAdded, venueType = 'bar' }) {
   const { showToast } = useToast();
+  const isFroyo = venueType === 'froyo';
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +18,7 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
     setError('');
     setSubmitting(true);
     try {
-      const { bar } = await api.createBar({ name, address });
+      const { bar } = await api.createBar({ name, address, venueType });
       showToast({ title: 'Suggestion submitted', body: `Thanks! ${bar.name} will appear once it's approved.` });
       onAdded?.(bar);
       onClose();
@@ -37,8 +38,8 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
       >
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-ink">Suggest a place</h2>
-            <p className="text-sm text-gray-500">We verify it on Google Maps, then an admin reviews it before it goes live.</p>
+            <h2 className="text-xl font-bold text-ink">Suggest a {isFroyo ? 'froyo spot' : 'place'}</h2>
+            <p className="text-sm text-gray-500">An admin reviews it before it goes live.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full bg-black/5 p-2 text-gray-500">
             <X size={18} />
@@ -50,7 +51,7 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Place name (e.g. Bleecker Street Bar)"
+            placeholder={isFroyo ? 'Place name (e.g. 16 Handles)' : 'Place name (e.g. Bleecker Street Bar)'}
             className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-ink"
           />
           <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
@@ -67,15 +68,17 @@ export default function AddPlaceSheet({ onClose, onAdded }) {
         {error && <p className="mt-3 text-sm font-medium text-wait-red">{error}</p>}
 
         <p className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
-          <ShieldCheck size={14} /> Verified on Google Maps, then reviewed before going live.
+          <ShieldCheck size={14} /> Reviewed by an admin before going live.
         </p>
 
         <button
           type="submit"
           disabled={submitting || !name.trim() || !address.trim()}
-          className="mt-4 w-full rounded-2xl bg-ink py-4 text-base font-semibold text-white disabled:opacity-50"
+          className={`mt-4 w-full rounded-2xl py-4 text-base font-semibold text-white disabled:opacity-50 ${
+            isFroyo ? 'bg-froyo' : 'bg-ink'
+          }`}
         >
-          {submitting ? 'Verifying…' : 'Submit suggestion'}
+          {submitting ? 'Submitting…' : 'Submit suggestion'}
         </button>
       </form>
     </div>

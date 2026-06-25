@@ -6,6 +6,7 @@ import FilterPills from '../components/FilterPills.jsx';
 import CheckInSheet from '../components/CheckInSheet.jsx';
 import AddPlaceSheet from '../components/AddPlaceSheet.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
+import VenueToggle from '../components/VenueToggle.jsx';
 import { Plus, Search, X, LocateFixed } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { displayWait } from '../lib/busyness.js';
@@ -31,6 +32,7 @@ export default function MapDashboard() {
   const [bars, setBars] = useState([]);
   const [friends, setFriends] = useState([]);
   const [filters, setFilters] = useState([]);
+  const [mode, setMode] = useState('bar'); // 'bar' | 'froyo'
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -92,13 +94,19 @@ export default function MapDashboard() {
   const toggleFilter = (key) =>
     setFilters((f) => (f.includes(key) ? f.filter((x) => x !== key) : [...f, key]));
 
+  // Only the current mode's venues appear on the map.
+  const modeBars = useMemo(
+    () => bars.filter((b) => (b.venueType || 'bar') === mode),
+    [bars, mode]
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = bars.filter((b) => {
+    const list = modeBars.filter((b) => {
       if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
       if (filters.includes('under20') && !(displayWait(b).waitMin < 20)) return false;
       if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
-      // "Open now" is a soft filter — all seeded bars are treated as open.
+      // "Open now" is a soft filter — all seeded venues are treated as open.
       return true;
     });
     // Once we know where the user is, show distance from them and sort nearest first.
@@ -108,13 +116,16 @@ export default function MapDashboard() {
         .sort((a, b) => a.distance - b.distance);
     }
     return list;
-  }, [bars, filters, query, userLocation]);
+  }, [modeBars, filters, query, userLocation]);
+
+  const isFroyo = mode === 'froyo';
+  const nounPlural = isFroyo ? 'froyo spots' : 'spots nearby';
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-canvas">
       {/* Map */}
       <div className="absolute inset-0">
-        <MapView bars={bars} friends={friends} onSelectBar={setSelected} userLocation={userLocation} />
+        <MapView bars={modeBars} friends={friends} onSelectBar={setSelected} userLocation={userLocation} />
       </div>
 
       {/* Brand header — left-aligned wordmark over the map */}
@@ -132,19 +143,28 @@ export default function MapDashboard() {
           </button>
           <button
             onClick={() => setAdding(true)}
-            className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform"
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform ${
+              isFroyo ? 'bg-froyo' : 'bg-ink'
+            }`}
           >
             <Plus size={18} /> Suggest
           </button>
         </div>
       </header>
 
+      {/* Venue mode switcher */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center pt-[calc(env(safe-area-inset-top)+60px)]">
+        <VenueToggle mode={mode} onChange={setMode} />
+      </div>
+
       {/* Bottom sheet */}
       <BottomSheet peekHeight={340}>
         <div className="pt-3">
           <h1 className="text-xl font-bold text-ink">
-            <span className="stat-number">{visible.length}</span>{' '}
-            {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : 'spots nearby'}
+            <span className="stat-number" style={isFroyo ? { color: '#E84A8A' } : undefined}>
+              {visible.length}
+            </span>{' '}
+            {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : nounPlural}
           </h1>
           <p className="truncate text-sm text-gray-500">
             {query.trim()
@@ -161,7 +181,7 @@ export default function MapDashboard() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search bars by name or address"
+            placeholder={isFroyo ? 'Search froyo spots by name or address' : 'Search bars by name or address'}
             className="flex-1 bg-transparent py-2.5 text-sm outline-none"
           />
           {query && (
@@ -180,7 +200,11 @@ export default function MapDashboard() {
             <p className="py-10 text-center text-sm text-gray-400">Loading bars…</p>
           ) : visible.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-400">
-              {query.trim() ? `No bars found for “${query.trim()}”.` : 'No bars match your filters.'}
+              {query.trim()
+                ? `No ${isFroyo ? 'froyo spots' : 'bars'} found for “${query.trim()}”.`
+                : isFroyo
+                ? 'No froyo spots yet.'
+                : 'No bars match your filters.'}
             </p>
           ) : (
             visible.map((bar) => (
@@ -200,7 +224,7 @@ export default function MapDashboard() {
       )}
 
       {/* Add-a-place sheet */}
-      {adding && <AddPlaceSheet onClose={() => setAdding(false)} onAdded={load} />}
+      {adding && <AddPlaceSheet venueType={mode} onClose={() => setAdding(false)} onAdded={load} />}
     </div>
   );
 }

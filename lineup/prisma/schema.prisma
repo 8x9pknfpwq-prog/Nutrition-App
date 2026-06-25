@@ -32,6 +32,7 @@ model Bar {
   distance      Float // stored in miles for display
   googlePlaceId String? @unique // set when verified against Google Places
   verified      Boolean @default(false)
+  venueType     String  @default("bar") // "bar" | "froyo"
   createdAt     DateTime @default(now())
 
   reports Report[]

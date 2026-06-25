@@ -7,6 +7,7 @@ export default {
         // NYC Lines palette — warm sand, near-black ink, signal dots
         canvas: '#F5F2EC', // app background (warm sand)
         ink: '#1A1A18', // near-black text
+        froyo: '#E84A8A', // froyo-mode accent (berry pink)
         tile: '#D4C9B0', // khaki icon tile
         darktile: '#1A1A18', // dark variant tile
         muted: '#8A8070', // muted label

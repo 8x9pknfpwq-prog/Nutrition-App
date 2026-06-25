@@ -71,6 +71,14 @@ const BARS = [
   { id: 'bar_holywater', name: 'Holywater', address: '112 Reade St', latitude: 40.716, longitude: -74.009, rating: 4.4, distance: 1.1 },
 ];
 
+// PLACEHOLDER froyo venues — replace with the real seed list.
+const FROYO = [
+  { id: 'froyo_16handles', name: '16 Handles', address: '153 2nd Ave', latitude: 40.7294, longitude: -73.9868, rating: 4.4, distance: 0.3 },
+  { id: 'froyo_2', name: 'Froyo placeholder 2', address: 'St Marks Pl', latitude: 40.7276, longitude: -73.9899, rating: 4.2, distance: 0.4 },
+  { id: 'froyo_3', name: 'Froyo placeholder 3', address: 'Avenue A', latitude: 40.7261, longitude: -73.9852, rating: 4.3, distance: 0.5 },
+  { id: 'froyo_4', name: 'Froyo placeholder 4', address: 'Orchard St', latitude: 40.7242, longitude: -73.9924, rating: 4.1, distance: 0.5 },
+];
+
 const USERS = [
   { id: 'u_maya', email: 'maya@lineup.app', username: 'maya', password: 'password123', avatarInitial: 'M' },
   { id: 'u_leo', email: 'leo@lineup.app', username: 'leo', password: 'password123', avatarInitial: 'L' },
@@ -127,7 +135,7 @@ function synthesizeHistory(bars) {
 
 // Fresh in-memory state, re-anchored to "now" on every load.
 function buildState() {
-  const reports = [...synthesizeHistory(BARS)];
+  const reports = [...synthesizeHistory([...BARS, ...FROYO])];
   let i = 0;
   for (const [barId, entries] of REPORT_PLAN) {
     for (const [waitMin, ago] of entries) {
@@ -137,9 +145,10 @@ function buildState() {
   }
   return {
     bars: [
-      ...BARS.map((b) => ({ ...b, verified: true, approved: true })),
+      ...BARS.map((b) => ({ ...b, verified: true, approved: true, venueType: 'bar' })),
+      ...FROYO.map((b) => ({ ...b, verified: true, approved: true, venueType: 'froyo' })),
       // A sample pending suggestion so the demo's Admin screen isn't empty.
-      { id: 'bar_pending_demo', name: 'Bleecker Street Bar', address: '58 Bleecker St, New York', latitude: 40.7259, longitude: -73.9956, rating: 0, distance: 0.9, verified: false, approved: false },
+      { id: 'bar_pending_demo', name: 'Bleecker Street Bar', address: '58 Bleecker St, New York', latitude: 40.7259, longitude: -73.9956, rating: 0, distance: 0.9, verified: false, approved: false, venueType: 'bar' },
     ],
     users: USERS.map((u) => ({ ...u })),
     reports,
@@ -391,7 +400,7 @@ export const demoApi = {
   async waittime(id) {
     return computeWait(reportsForBar(id));
   },
-  async createBar({ name, address }) {
+  async createBar({ name, address, venueType = 'bar' }) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     name = (name || '').trim();
     address = (address || '').trim();
@@ -416,6 +425,7 @@ export const demoApi = {
       distance: milesFromCenter(geo.latitude, geo.longitude),
       verified: false, // the static demo can't run the server-side Google check
       approved: false, // suggestions stay pending until an admin approves
+      venueType: venueType === 'froyo' ? 'froyo' : 'bar',
     };
     db.bars.push(bar);
     persistUserBars();

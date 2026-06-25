@@ -43,6 +43,7 @@ function mapBar(b, extra = {}) {
     rating: b.rating,
     distance: b.distance,
     verified: b.verified,
+    venueType: b.venue_type ?? 'bar',
     googlePlaceId: b.google_place_id ?? null,
     waitMin: extra.waitMin ?? null,
     reportCount: extra.reportCount ?? 0,
@@ -229,7 +230,7 @@ export const supabaseApi = {
 
   // Submit a PENDING suggestion. Geocoded via Mapbox for a map pin; an admin
   // approves it before it goes live. (No Google verification — admin verifies.)
-  async createBar({ name, address }) {
+  async createBar({ name, address, venueType = 'bar' }) {
     const id = await myId();
     if (!id) throw apiErr('Not authenticated', 401);
     name = (name || '').trim();
@@ -253,6 +254,7 @@ export const supabaseApi = {
       distance: milesFromCenter(geo.latitude, geo.longitude),
       verified: false,
       approved: false,
+      venue_type: venueType === 'froyo' ? 'froyo' : 'bar',
       submitted_by: id,
     };
     // Don't .select() back — RLS hides unapproved rows, so reading it returns
