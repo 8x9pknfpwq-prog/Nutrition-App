@@ -43,6 +43,7 @@ const realApi = {
   bar: (id) => request(`/bars/${id}`),
   waittime: (id) => request(`/bars/${id}/waittime`),
   forecast: (id) => request(`/bars/${id}/forecast`),
+  setVenueHours: (id, hours) => request(`/bars/${id}/hours`, { method: 'PUT', body: { hours } }),
   createBar: (body) => request('/bars', { method: 'POST', body }),
 
   // reports

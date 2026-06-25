@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { waitColor, statusText } from '../lib/wait.js';
 import {
   displayWait, busynessLabel, bestTimeHour, formatHour,
-  forecastDay, levelFromWait, histogramCount, nycParts, isOpen,
+  forecastDay, levelFromWait, histogramCount, nycParts, openStatus,
 } from '../lib/busyness.js';
 
 const MAX = 90; // slider tops out at "90+"
@@ -143,9 +143,14 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
           <div className="min-w-0">
             <h2 className="truncate text-xl font-bold text-ink">{bar.name}</h2>
             <p className="truncate text-sm text-gray-500">{bar.address}</p>
-            {bar.waitMin == null && !isOpen(bar) && (
-              <p className="mt-0.5 text-xs font-semibold text-gray-400">Usually closed right now</p>
-            )}
+            {(() => {
+              const s = openStatus(bar);
+              return (
+                <p className={`mt-0.5 text-xs font-semibold ${s.open ? 'text-wait-green' : 'text-gray-400'}`}>
+                  {s.text}
+                </p>
+              );
+            })()}
           </div>
           <button onClick={onClose} className="rounded-full bg-black/5 p-2 text-gray-500">
             <X size={18} />

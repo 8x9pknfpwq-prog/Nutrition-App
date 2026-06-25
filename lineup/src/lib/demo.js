@@ -40,7 +40,9 @@ function apiError(message, status = 400) {
 
 // --- seed data (stable ids so sessions survive reloads) ------------------
 const BARS = [
-  { id: 'bar_wren', name: 'The Wren', address: '64 E 1st St', latitude: 40.72335, longitude: -73.99056, rating: 4.5, distance: 0.2 },
+  // Example of real per-day hours: open 5 PM–2 AM, later Fri/Sat, closed Mondays.
+  { id: 'bar_wren', name: 'The Wren', address: '64 E 1st St', latitude: 40.72335, longitude: -73.99056, rating: 4.5, distance: 0.2,
+    hours: [ { open: 1020, close: 1560 }, null, { open: 1020, close: 1560 }, { open: 1020, close: 1560 }, { open: 1020, close: 1560 }, { open: 1020, close: 1620 }, { open: 1020, close: 1620 } ] },
   { id: 'bar_pouring', name: 'Pouring Ribbons', address: '225 Avenue B', latitude: 40.72705, longitude: -73.97874, rating: 4.6, distance: 0.6 },
   { id: 'bar_deathco', name: 'Death & Co', address: '433 E 6th St', latitude: 40.72627, longitude: -73.98372, rating: 4.7, distance: 0.4 },
   { id: 'bar_amor', name: 'Amor y Amargo', address: '443 E 6th St', latitude: 40.72637, longitude: -73.98347, rating: 4.4, distance: 0.4 },
@@ -75,7 +77,8 @@ const BARS = [
 // Fare. Coordinates are best-effort from each street address (nudge in the
 // Supabase Table Editor if a pin is slightly off).
 const FROYO = [
-  { id: 'froyo_gogreek', name: 'Go Greek Yogurt', address: '683 Broadway', latitude: 40.7276, longitude: -73.9937, rating: 4.5, distance: 0.1 },
+  { id: 'froyo_gogreek', name: 'Go Greek Yogurt', address: '683 Broadway', latitude: 40.7276, longitude: -73.9937, rating: 4.5, distance: 0.1,
+    hours: Array.from({ length: 7 }, () => ({ open: 660, close: 1380 })) }, // 11 AM–11 PM daily
   { id: 'froyo_culture_8th', name: 'Culture: An American Yogurt Co.', address: '60 W 8th St', latitude: 40.7330, longitude: -73.9980, rating: 4.4, distance: 0.4 },
   { id: 'froyo_culture_bk', name: 'Culture (Park Slope)', address: '331 5th Ave, Brooklyn', latitude: 40.6718, longitude: -73.9875, rating: 4.4, distance: 4.0 },
   { id: 'froyo_myka', name: 'Myka', address: '159 7th Ave S', latitude: 40.7360, longitude: -74.0028, rating: 4.5, distance: 0.6 },
@@ -519,12 +522,18 @@ export const demoApi = {
     return {
       pending: db.bars
         .filter((b) => !b.approved)
-        .map((b) => ({ id: b.id, name: b.name, address: b.address, createdAt: b.createdAt || new Date(), submittedBy: null })),
+        .map((b) => ({ id: b.id, name: b.name, address: b.address, venueType: b.venueType || 'bar', hours: b.hours || null, createdAt: b.createdAt || new Date(), submittedBy: null })),
     };
   },
   async approveBar(id) {
     const b = db.bars.find((x) => x.id === id);
     if (b) b.approved = true;
+    persistUserBars();
+    return { ok: true };
+  },
+  async setVenueHours(id, hours) {
+    const b = db.bars.find((x) => x.id === id);
+    if (b) b.hours = hours;
     persistUserBars();
     return { ok: true };
   },

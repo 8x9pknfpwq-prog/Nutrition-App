@@ -1,24 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Check, X, MapPin } from 'lucide-react';
+import { Check, X, MapPin, Clock } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { timeAgo } from '../lib/wait.js';
+import { openStatus, hasRealHours } from '../lib/busyness.js';
+import HoursEditor from '../components/HoursEditor.jsx';
 
 // Admin-only review queue: approve a suggestion to make it live, or reject it.
 export default function Admin() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [pending, setPending] = useState([]);
+  const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [editing, setEditing] = useState(null); // venue being given hours
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { pending } = await api.pendingBars();
+      const [{ pending }, { bars }] = await Promise.all([api.pendingBars(), api.bars()]);
       setPending(pending);
+      setVenues((bars || []).filter((b) => b.approved !== false));
     } catch (e) {
       showToast({ title: 'Could not load suggestions', body: e.message });
     } finally {
@@ -77,7 +82,13 @@ export default function Admin() {
                 </p>
               </div>
             </div>
-            <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => setEditing(b)}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-black/10 bg-white py-2 text-xs font-semibold text-ink"
+            >
+              <Clock size={14} /> {b.hours ? 'Edit hours' : 'Set hours'}
+            </button>
+            <div className="mt-2 flex gap-2">
               <button
                 onClick={() => act(b.id, 'approve')}
                 disabled={busyId === b.id}
@@ -96,6 +107,46 @@ export default function Admin() {
           </div>
         ))}
       </div>
+
+      {/* Live venues — set/adjust opening hours */}
+      <h2 className="mt-8 text-lg font-bold text-ink">Venue hours</h2>
+      <p className="mt-0.5 text-sm text-gray-500">
+        {loading ? 'Loading…' : 'Tap a venue to set its real opening hours'}
+      </p>
+      <div className="mt-3 space-y-2">
+        {venues.map((v) => {
+          const status = openStatus(v);
+          return (
+            <button
+              key={v.id}
+              onClick={() => setEditing(v)}
+              className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-card"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/5 text-ink">
+                <Clock size={16} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink">{v.name}</span>
+                <span className={`block truncate text-xs ${status.open ? 'text-wait-green' : 'text-gray-400'}`}>
+                  {status.text}
+                  {!hasRealHours(v) && ' · default hours'}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {editing && (
+        <HoursEditor
+          venue={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(hours) => {
+            setPending((p) => p.map((b) => (b.id === editing.id ? { ...b, hours } : b)));
+            setVenues((vs) => vs.map((b) => (b.id === editing.id ? { ...b, hours } : b)));
+          }}
+        />
+      )}
     </div>
   );
 }

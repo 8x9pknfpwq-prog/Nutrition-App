@@ -57,33 +57,108 @@ export function nycParts(now = Date.now()) {
     timeZone: 'America/New_York',
     weekday: 'short',
     hour: '2-digit',
+    minute: '2-digit',
     hour12: false,
   }).formatToParts(new Date(now));
   let dow = 0;
   let hour = 0;
+  let minute = 0;
   for (const p of parts) {
     if (p.type === 'weekday') dow = DOW[p.value] ?? 0;
     if (p.type === 'hour') hour = parseInt(p.value, 10) % 24;
+    if (p.type === 'minute') minute = parseInt(p.value, 10);
   }
-  return { dow, hour };
+  return { dow, hour, minute };
 }
 
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 // --- opening hours -----------------------------------------------------------
-// Default open windows by venue type, in NYC local hours [open, close).
-// When close <= open the window runs past midnight (bars close in the early AM).
-// A venue row may override with openHour / closeHour.
+// Default open windows by venue type, in NYC local hours, used when a venue has
+// no explicit `hours` set yet.
 const HOURS = {
   bar: { open: 16, close: 4 }, // 4 PM – 4 AM
   froyo: { open: 11, close: 23 }, // 11 AM – 11 PM
 };
 
-export function isOpen(bar, now = Date.now()) {
+// Normalize a stored `hours` value (array of 7: null | {open, close} in minutes)
+// into a clean array, or null if it isn't usable (→ caller falls back to defaults).
+function normalizeHours(hours) {
+  if (!Array.isArray(hours) || hours.length !== 7) return null;
+  let any = false;
+  const out = hours.map((e) => {
+    if (!e || typeof e.open !== 'number' || typeof e.close !== 'number') return null;
+    any = true;
+    let close = e.close;
+    if (close <= e.open) close += 1440; // close past midnight
+    return { open: e.open, close };
+  });
+  return any ? out : out; // keep all-null (a venue marked closed every day)
+}
+
+// Whether the venue has real, admin-entered hours (vs. relying on type defaults).
+export function hasRealHours(bar) {
+  return normalizeHours(bar?.hours) != null && bar.hours.some((e) => e);
+}
+
+// The 7-day windows actually used: explicit hours if set, else the type default
+// applied to every day.
+function effectiveHours(bar) {
+  const h = normalizeHours(bar?.hours);
+  if (h && bar.hours.some((e) => e)) return h;
   const vt = bar?.venueType === 'froyo' ? 'froyo' : 'bar';
-  const open = bar?.openHour ?? HOURS[vt].open;
-  const close = bar?.closeHour ?? HOURS[vt].close;
-  if (open === close) return true; // treated as always open
-  const { hour } = nycParts(now);
-  return open < close ? hour >= open && hour < close : hour >= open || hour < close;
+  const open = (bar?.openHour ?? HOURS[vt].open) * 60;
+  let close = (bar?.closeHour ?? HOURS[vt].close) * 60;
+  if (close <= open) close += 1440;
+  return Array.from({ length: 7 }, () => ({ open, close }));
+}
+
+export function isOpen(bar, now = Date.now()) {
+  const eh = effectiveHours(bar);
+  const { dow, hour, minute } = nycParts(now);
+  const m = hour * 60 + minute;
+  const today = eh[dow];
+  if (today && m >= today.open && m < Math.min(today.close, 1440)) return true;
+  // A window that ran past midnight belongs to the previous day's entry.
+  const y = eh[(dow + 6) % 7];
+  if (y && y.close > 1440 && m + 1440 < y.close) return true;
+  return false;
+}
+
+// Human-readable status: { open, text } e.g. "Open until 2 AM",
+// "Closed · opens 4 PM", "Closed · opens Sat 11 AM".
+export function openStatus(bar, now = Date.now()) {
+  const eh = effectiveHours(bar);
+  const { dow, hour, minute } = nycParts(now);
+  const m = hour * 60 + minute;
+
+  if (isOpen(bar, now)) {
+    const today = eh[dow];
+    let close;
+    if (today && m >= today.open && m < Math.min(today.close, 1440)) close = today.close;
+    else close = eh[(dow + 6) % 7].close;
+    return { open: true, text: `Open until ${formatMin(close)}` };
+  }
+
+  for (let i = 0; i < 7; i++) {
+    const d = (dow + i) % 7;
+    const e = eh[d];
+    if (!e) continue;
+    if (i === 0 && m >= e.open) continue; // today's window already passed
+    const when = i === 0 ? '' : i === 1 ? 'tomorrow ' : `${WEEKDAY[d]} `;
+    return { open: false, text: `Closed · opens ${when}${formatMin(e.open)}` };
+  }
+  return { open: false, text: 'Closed' };
+}
+
+// Minutes-from-midnight → "2 AM" / "11:30 PM".
+export function formatMin(min) {
+  min = (((min % 1440) + 1440) % 1440);
+  const h = Math.floor(min / 60);
+  const mm = min % 60;
+  const period = h < 12 ? 'AM' : 'PM';
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return mm === 0 ? `${hr} ${period}` : `${hr}:${String(mm).padStart(2, '0')} ${period}`;
 }
 
 // --- forecast blending -------------------------------------------------------

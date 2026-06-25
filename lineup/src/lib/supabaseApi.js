@@ -44,6 +44,8 @@ function mapBar(b, extra = {}) {
     distance: b.distance,
     verified: b.verified,
     venueType: b.venue_type ?? 'bar',
+    hours: b.hours ?? null,
+    approved: b.approved ?? true,
     googlePlaceId: b.google_place_id ?? null,
     waitMin: extra.waitMin ?? null,
     reportCount: extra.reportCount ?? 0,
@@ -402,7 +404,7 @@ export const supabaseApi = {
   async pendingBars() {
     const { data, error } = await supabase
       .from('bars')
-      .select('id, name, address, latitude, longitude, created_at, profiles:submitted_by(username)')
+      .select('id, name, address, latitude, longitude, venue_type, hours, created_at, profiles:submitted_by(username)')
       .eq('approved', false)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
@@ -411,6 +413,8 @@ export const supabaseApi = {
         id: b.id,
         name: b.name,
         address: b.address,
+        venueType: b.venue_type ?? 'bar',
+        hours: b.hours ?? null,
         createdAt: b.created_at,
         submittedBy: b.profiles?.username || null,
       })),
@@ -418,6 +422,12 @@ export const supabaseApi = {
   },
   async approveBar(id) {
     const { error } = await supabase.from('bars').update({ approved: true, verified: true }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+  // Admin: set a venue's per-day opening hours (null = use type defaults).
+  async setVenueHours(id, hours) {
+    const { error } = await supabase.from('bars').update({ hours }).eq('id', id);
     if (error) throw new Error(error.message);
     return { ok: true };
   },
