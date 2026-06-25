@@ -136,9 +136,10 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   return (
     <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
-        className="flex max-h-[94vh] w-full max-w-md flex-col rounded-t-3xl bg-canvas p-5 pb-8 animate-slide-up"
+        className="flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-3xl bg-canvas animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="no-scrollbar flex-1 overflow-y-auto px-5 pt-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -222,14 +223,19 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
           </button>
         </div>
 
-        {/* CTA */}
-        <button
-          onClick={submit}
-          disabled={submitting}
-          className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-base font-semibold text-white disabled:opacity-60"
-        >
-          {submitting ? 'Checking in…' : (<><Check size={18} /> Check in here</>)}
-        </button>
+          <div className="h-3" />
+        </div>
+
+        {/* Pinned CTA — always visible, clears the home indicator */}
+        <div className="shrink-0 border-t border-black/5 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-base font-semibold text-white disabled:opacity-60"
+          >
+            {submitting ? 'Checking in…' : (<><Check size={18} /> Check in here</>)}
+          </button>
+        </div>
       </div>
     </div>
   );
