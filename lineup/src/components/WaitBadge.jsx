@@ -4,10 +4,19 @@ import { waitClasses, waitLabel } from '../lib/wait.js';
 //   solid — filled map/CTA style
 //   est   — a baseline estimate (no live reports yet): outlined + "~" prefix so
 //           it reads as "typically about this" rather than a confirmed number.
-export default function WaitBadge({ waitMin, solid = false, est = false, className = '' }) {
+export default function WaitBadge({ waitMin, solid = false, est = false, closed = false, className = '' }) {
   const c = waitClasses(waitMin);
   const label = est ? (waitMin <= 0 ? 'Quiet' : `~${waitMin}m`) : waitLabel(waitMin);
 
+  if (closed) {
+    return (
+      <span
+        className={`wait-time inline-flex items-center justify-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-400 ${className}`}
+      >
+        Closed
+      </span>
+    );
+  }
   if (est) {
     return (
       <span

@@ -31,7 +31,7 @@ export default function BarCard({ bar, onClick }) {
               <BadgeCheck size={14} className="shrink-0 text-wait-green" aria-label="Verified on Google Maps" />
             )}
           </h3>
-          <WaitBadge waitMin={wait.waitMin} est={!wait.isLive} />
+          <WaitBadge waitMin={wait.waitMin} est={!wait.isLive && !wait.closed} closed={wait.closed} />
         </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
           <span className="flex items-center gap-0.5">
@@ -42,7 +42,9 @@ export default function BarCard({ bar, onClick }) {
           <span>{bar.distance} mi</span>
           <span>·</span>
           <span>
-            {wait.isLive
+            {wait.closed
+              ? 'Closed now'
+              : wait.isLive
               ? bar.reportCount === 1
                 ? '1 report'
                 : `${bar.reportCount} reports`

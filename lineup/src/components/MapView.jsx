@@ -11,7 +11,7 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 //   live data    → solid colored bubble with the number
 //   baseline est → outlined (white fill, colored text) "~N" so it reads as typical
 function barPinEl(bar) {
-  const { waitMin, isLive } = displayWait(bar);
+  const { waitMin, isLive, closed } = displayWait(bar);
   const color = waitColor(waitMin);
   const el = document.createElement('div');
   el.className = 'lineup-pin';
@@ -20,6 +20,12 @@ function barPinEl(bar) {
     min-width:34px;height:34px;padding:0 8px;border-radius:9999px;
     font-weight:600;font-size:12px;font-family:'IBM Plex Mono',ui-monospace,monospace;
     box-shadow:0 4px 10px rgba(0,0,0,.25);`;
+  if (closed) {
+    // Closed: a small muted dot, no wait number.
+    el.style.cssText =
+      'width:14px;height:14px;border-radius:9999px;background:#B6B2A8;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);opacity:.85;';
+    return el;
+  }
   if (isLive) {
     el.style.cssText = `${base}background:${color};color:#fff;border:2px solid #fff;`;
     el.textContent = waitLabel(waitMin);
@@ -72,8 +78,19 @@ function FallbackMap({ bars, friends, onSelectBar }) {
       )}
       {bars.map((b) => {
         const friend = b.checkins?.[0];
-        const { waitMin, isLive } = displayWait(b);
+        const { waitMin, isLive, closed } = displayWait(b);
         const color = waitColor(waitMin);
+        if (closed) {
+          return (
+            <button
+              key={b.id}
+              onClick={() => onSelectBar(b)}
+              className="absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white opacity-80 shadow"
+              style={{ ...pos(b), background: '#B6B2A8' }}
+              aria-label={`${b.name} (closed)`}
+            />
+          );
+        }
         return (
           <button
             key={b.id}

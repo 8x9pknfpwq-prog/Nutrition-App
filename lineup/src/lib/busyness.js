@@ -68,6 +68,24 @@ export function nycParts(now = Date.now()) {
   return { dow, hour };
 }
 
+// --- opening hours -----------------------------------------------------------
+// Default open windows by venue type, in NYC local hours [open, close).
+// When close <= open the window runs past midnight (bars close in the early AM).
+// A venue row may override with openHour / closeHour.
+const HOURS = {
+  bar: { open: 16, close: 4 }, // 4 PM – 4 AM
+  froyo: { open: 11, close: 23 }, // 11 AM – 11 PM
+};
+
+export function isOpen(bar, now = Date.now()) {
+  const vt = bar?.venueType === 'froyo' ? 'froyo' : 'bar';
+  const open = bar?.openHour ?? HOURS[vt].open;
+  const close = bar?.closeHour ?? HOURS[vt].close;
+  if (open === close) return true; // treated as always open
+  const { hour } = nycParts(now);
+  return open < close ? hour >= open && hour < close : hour >= open || hour < close;
+}
+
 // --- forecast blending -------------------------------------------------------
 // Shrink an observed average toward the prior by sample count.
 export function blend(avgWait, n, priorWait) {
@@ -88,8 +106,14 @@ function levelFromWait(waitMin) {
 //   prior     — generic curve, when the bar has no history at all yet
 // `bar.forecastNow` is { avgWait, n } for the current NYC weekday/hour.
 export function displayWait(bar, now = Date.now()) {
+  // A live report means it's open regardless of our default hours — the crowd
+  // knows better, so show the real number.
   if (bar && bar.waitMin != null) {
     return { waitMin: bar.waitMin, isLive: true, source: 'live', n: bar.reportCount ?? 0, level: levelFromWait(bar.waitMin) };
+  }
+  // Otherwise, a closed venue shows no wait — not a forecast.
+  if (bar && !isOpen(bar, now)) {
+    return { waitMin: null, isLive: false, closed: true, source: 'closed', n: 0, level: 0 };
   }
   const { dow, hour } = nycParts(now);
   const prior = priorWaitAt(bar || {}, dow, hour);

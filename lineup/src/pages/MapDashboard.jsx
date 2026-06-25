@@ -9,7 +9,7 @@ import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
 import VenueToggle from '../components/VenueToggle.jsx';
 import { Plus, Search, X, LocateFixed } from 'lucide-react';
 import { api } from '../lib/api.js';
-import { displayWait } from '../lib/busyness.js';
+import { displayWait, isOpen } from '../lib/busyness.js';
 import { getCurrentPosition } from '../lib/geo.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -104,9 +104,10 @@ export default function MapDashboard() {
     const q = query.trim().toLowerCase();
     const list = modeBars.filter((b) => {
       if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
-      if (filters.includes('under20') && !(displayWait(b).waitMin < 20)) return false;
+      const w = displayWait(b);
+      if (filters.includes('open') && w.closed) return false;
+      if (filters.includes('under20') && !(w.waitMin != null && w.waitMin < 20)) return false;
       if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
-      // "Open now" is a soft filter — all seeded venues are treated as open.
       return true;
     });
     // Once we know where the user is, show distance from them and sort nearest first.
