@@ -62,7 +62,7 @@ export default function HoursEditor({ venue, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
-        className="flex max-h-[92vh] w-full max-w-md flex-col rounded-t-3xl bg-canvas p-5 pb-8 animate-slide-up"
+        className="flex max-h-[88svh] w-full max-w-md flex-col rounded-t-3xl bg-canvas p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">

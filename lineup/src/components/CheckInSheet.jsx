@@ -136,7 +136,7 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   return (
     <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
-        className="flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-3xl bg-canvas animate-slide-up"
+        className="flex max-h-[88svh] w-full max-w-md flex-col rounded-t-3xl bg-canvas animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="no-scrollbar flex-1 overflow-y-auto px-5 pt-5">
