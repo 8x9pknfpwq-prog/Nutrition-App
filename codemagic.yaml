@@ -1,0 +1,82 @@
+# Codemagic build recipe — NYC Lines iOS (Capacitor)
+#
+# Builds the web app, wraps it with Capacitor for iOS, signs it with your
+# App Store Connect API key, and uploads it to TestFlight. Runs on Codemagic's
+# cloud Macs (Xcode 26), so no local Mac is needed.
+#
+# Before this works you must set up in Codemagic (I'll walk you through each):
+#   • An App Store Connect API key integration (name it exactly: nyc-lines-asc)
+#   • An environment variable group named "nyc_lines_env" containing:
+#       VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN
+#   • The app registered in App Store Connect with bundle id com.nyclines.app
+#
+# Push notifications are intentionally NOT enabled in this first build (they need
+# extra entitlements + an APNs key). The app still builds and runs; push is a
+# later update.
+
+workflows:
+  ios-testflight:
+    name: NYC Lines iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: nyc-lines-asc
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.nyclines.app
+      vars:
+        BUNDLE_ID: "com.nyclines.app"
+        XCODE_WORKSPACE: "lineup/ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      groups:
+        - nyc_lines_env   # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_MAPBOX_TOKEN
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install web dependencies
+        script: |
+          cd lineup
+          npm ci
+      - name: Build the web app (Supabase mode, root base)
+        script: |
+          cd lineup
+          VITE_BASE=/ npx vite build
+      - name: Add iOS platform & sync Capacitor
+        script: |
+          cd lineup
+          [ -d ios ] || npx cap add ios
+          npx cap sync ios
+      - name: Add Info.plist usage strings
+        script: |
+          PLIST="lineup/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription NYC Lines uses your location to show the nearest bars and center the map." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string NYC Lines uses your location to show the nearest bars and center the map." "$PLIST"
+      - name: Install CocoaPods dependencies
+        script: |
+          cd lineup/ios/App
+          pod install
+      - name: Set build number
+        script: |
+          cd lineup/ios/App
+          agvtool new-version -all "$(($BUILD_NUMBER))"
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
