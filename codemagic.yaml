@@ -10,6 +10,13 @@
 #       VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN
 #   • The app registered in App Store Connect with bundle id com.nyclines.app
 #
+# Certificate reuse: the "Set up code signing" step below reuses ONE
+# distribution certificate across every build via a stored signing key
+# (secured env var CERT_PRIVATE_KEY). On the very first run that var is empty,
+# so it generates the key + creates the certificate once and prints the key at
+# the end of the step for you to save. See docs/ios-app.md for the copy step.
+# This stops Apple's "you already have 2 certificates" errors.
+#
 # Push notifications are intentionally NOT enabled in this first build (they need
 # extra entitlements + an APNs key). The app still builds and runs; push is a
 # later update.
@@ -72,10 +79,19 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          # A distribution certificate is generated from a CSR, which needs a
-          # private key — generate one, then let fetch-signing-files create the
-          # certificate + App Store profile (and save a .p12 for the keychain).
-          openssl genrsa -out /tmp/cert_key.pem 2048
+          # Reuse ONE distribution certificate on every build. A certificate is
+          # tied to a private key; fetch-signing-files reuses the existing cert
+          # that matches the key we pass in, and only creates a new one when no
+          # match exists. The old recipe generated a fresh key each build, so no
+          # cert ever matched and a new one was minted every time (Apple caps
+          # you at 2). Now we keep the key stable via CERT_PRIVATE_KEY.
+          if [ -n "$CERT_PRIVATE_KEY" ]; then
+            echo "Found stored signing key — reusing the existing certificate."
+            echo "$CERT_PRIVATE_KEY" | openssl base64 -A -d > /tmp/cert_key.pem
+          else
+            echo "No stored signing key — generating one and creating the certificate (one time only)."
+            openssl genrsa -out /tmp/cert_key.pem 2048
+          fi
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --certificate-key=@file:/tmp/cert_key.pem \
@@ -84,6 +100,21 @@ workflows:
           security find-identity -v -p codesigning || true
           cd lineup/ios/App
           xcode-project use-profiles
+          # One-time bootstrap: print the key so you can store it as a SECURED
+          # env var named CERT_PRIVATE_KEY (group nyc_lines_env). After that,
+          # every build reuses this same certificate and never creates another.
+          if [ -z "$CERT_PRIVATE_KEY" ]; then
+            echo "=================================================================="
+            echo " ONE-TIME SETUP — copy the single line between the markers below"
+            echo " into a SECURED environment variable named CERT_PRIVATE_KEY in"
+            echo " the nyc_lines_env group, then re-run. Future builds will reuse"
+            echo " this certificate instead of creating a new one each time."
+            echo "----------------------- CERT_PRIVATE_KEY BEGIN -------------------"
+            openssl base64 -A -in /tmp/cert_key.pem
+            echo ""
+            echo "----------------------- CERT_PRIVATE_KEY END ---------------------"
+            echo "=================================================================="
+          fi
       - name: Build IPA
         script: |
           cd lineup/ios/App

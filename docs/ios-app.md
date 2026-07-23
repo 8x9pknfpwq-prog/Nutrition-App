@@ -116,6 +116,38 @@ supabase functions deploy delete-account
 
 ---
 
+## Reusing one signing certificate (avoid Apple's 2-cert limit)
+
+The Codemagic recipe now reuses a single distribution certificate on every
+build instead of minting a new one each time (which used to exhaust Apple's
+limit of 2 and force you to revoke certs). One-time setup:
+
+1. **Revoke the old certificates first.** Apple Developer portal →
+   **Certificates, IDs & Profiles → Certificates** → delete every existing
+   **Apple Distribution** certificate (they were the throwaway ones). You'll
+   create exactly one fresh, permanent one below.
+2. **Run the Codemagic build once** with no `CERT_PRIVATE_KEY` set. It
+   generates a key, creates the certificate, and near the end of the
+   **Set up code signing** step prints a block like:
+   ```
+   ----------------------- CERT_PRIVATE_KEY BEGIN -------------------
+   <one long line>
+   ----------------------- CERT_PRIVATE_KEY END ---------------------
+   ```
+3. **Copy that one long line** (between the markers) and add it in Codemagic →
+   your app → **Environment variables** as:
+   - **Name:** `CERT_PRIVATE_KEY`
+   - **Group:** `nyc_lines_env`
+   - **Secure:** ✅ checked
+4. **Re-run the build.** From now on every build reuses the same certificate —
+   no new certs, no revoke dance. If you ever see it print the block again, it
+   means the var wasn't picked up (check the name/group and that it's in the
+   group this workflow loads).
+
+> The printed value is a private signing key. It only appears in your own
+> Codemagic build log; treat it like a password — don't paste it anywhere
+> public, and once it's stored as the secure env var you can clear that log.
+
 ## 6. App Store Connect
 
 - Create the app with bundle id `com.nyclines.app`.
