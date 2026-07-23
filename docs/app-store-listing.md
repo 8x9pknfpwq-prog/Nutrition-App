@@ -147,9 +147,15 @@ Transparency prompt.
 
 | Field | Value |
 |---|---|
-| **Privacy Policy URL** | `https://YOURDOMAIN/#/privacy` ⚠️ ACTION |
-| **Support URL** | `https://YOURDOMAIN/#/` (or a simple contact page) ⚠️ ACTION |
-| **Marketing URL** (optional) | `https://YOURDOMAIN/` |
+| **Privacy Policy URL** | `https://8x9pknfpwq-prog.github.io/Nutrition-App/#/privacy` |
+| **Support URL** | `https://8x9pknfpwq-prog.github.io/Nutrition-App/#/` |
+| **Marketing URL** (optional) | `https://8x9pknfpwq-prog.github.io/Nutrition-App/` |
+
+> ⚠️ ACTION: Confirm these load in a browser before submitting. They only work
+> if GitHub Pages is deployed for the repo (the `deploy-demo` workflow publishes
+> it on the default branch). Open the Privacy URL — if it shows the policy, Apple
+> is happy. If it 404s, enable Pages (Settings → Pages) / run the deploy workflow.
+> You can swap in a custom domain later without re-submitting.
 
 > ⚠️ ACTION: The in-app Privacy/Terms pages and this listing use a placeholder
 > support email **support@nyclines.app**. Set up a real inbox (or swap in one you
