@@ -133,7 +133,7 @@ function Terms() {
 export default function Legal({ doc }) {
   const isPrivacy = doc === 'privacy';
   return (
-    <div className="mx-auto min-h-screen max-w-2xl bg-canvas px-5 pb-20 pt-[calc(env(safe-area-inset-top)+16px)]">
+    <div className="mx-auto h-full max-w-2xl overflow-y-auto overscroll-contain bg-canvas px-5 pb-20 pt-[calc(env(safe-area-inset-top)+16px)]">
       <div className="flex items-center justify-between">
         <Link to="/" className="flex items-center gap-1.5 text-sm font-semibold text-gray-500">
           <ArrowLeft size={18} /> Back

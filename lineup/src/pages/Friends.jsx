@@ -115,7 +115,7 @@ export default function Friends() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-md bg-canvas px-4 pb-24 pt-5">
+    <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-ink">Friends</h1>
         <button

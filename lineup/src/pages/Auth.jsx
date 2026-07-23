@@ -49,7 +49,8 @@ export default function Auth() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-6">
+    <div className="h-full overflow-y-auto overscroll-contain bg-canvas">
+      <div className="flex min-h-full flex-col items-center justify-center px-6 py-10">
       <div className="mb-8 flex flex-col items-center text-center">
         <NYCLinesLogo variant="light" height={56} />
         <p className="mt-3 text-sm text-gray-500">Real-time bar wait times, by the crowd.</p>
@@ -215,6 +216,7 @@ export default function Auth() {
         {' · '}
         <Link to="/terms" className="font-medium text-gray-500">Terms</Link>
       </p>
+      </div>
     </div>
   );
 }

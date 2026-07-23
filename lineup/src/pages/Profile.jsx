@@ -32,7 +32,7 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto min-h-screen max-w-md bg-canvas px-4 pb-24 pt-8">
+    <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-8">
       <div className="flex flex-col items-center">
         <Avatar initial={user.avatarInitial} seed={user.username} size={88} />
         <h1 className="mt-4 text-2xl font-extrabold text-ink">{user.username}</h1>

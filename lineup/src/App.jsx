@@ -39,7 +39,7 @@ function AuthedApp() {
   return (
     <SocketProvider>
       <FriendCheckinListener />
-      <div className="min-h-screen bg-canvas">
+      <div className="h-full bg-canvas">
         <Routes>
           <Route path="/" element={<MapDashboard />} />
           <Route path="/friends" element={<Friends />} />
@@ -60,7 +60,7 @@ function Gate() {
   if (recovering) return <ResetPassword />;
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-canvas">
+      <div className="grid h-full place-items-center bg-canvas">
         <NYCLinesLogo variant="light" height={44} className="animate-pulse" />
       </div>
     );

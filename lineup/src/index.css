@@ -21,6 +21,18 @@ body,
   height: 100%;
 }
 
+/* Lock the document itself so iOS/WKWebView can't rubber-band the whole page
+   (which slid the header under the status bar and opened a blank gap below the
+   tab bar). Each screen scrolls inside its own container instead. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#root {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: var(--app-bg);

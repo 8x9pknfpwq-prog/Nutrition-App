@@ -28,7 +28,7 @@ export default function Saved() {
   const savedBars = bars.filter((b) => saved.includes(b.id));
 
   return (
-    <div className="mx-auto min-h-screen max-w-md bg-canvas px-4 pb-24 pt-5">
+    <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-5">
       <h1 className="text-2xl font-extrabold text-ink">Saved</h1>
       <p className="mt-0.5 text-sm text-gray-500">Your bookmarked spots</p>
 
