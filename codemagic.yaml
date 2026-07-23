@@ -72,23 +72,21 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          echo "===== creating distribution certificate ====="
-          app-store-connect create-certificate --type IOS_DISTRIBUTION --save \
-            || echo ">>> create-certificate returned non-zero (see error above)"
-          echo "===== fetching/creating signing files ====="
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create \
-            || echo ">>> fetch-signing-files returned non-zero (see error above)"
-          keychain add-certificates || true
+          # A distribution certificate is generated from a CSR, which needs a
+          # private key — generate one, then let fetch-signing-files create the
+          # certificate + App Store profile (and save a .p12 for the keychain).
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/cert_key.pem \
+            --create
+          keychain add-certificates
           echo "===== provisioning profiles present ====="
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>&1 || true
           echo "===== codesigning identities ====="
           security find-identity -v -p codesigning || true
-          # Stop here with a clear message if no profile was actually created,
-          # rather than continuing to a doomed archive.
           if ! ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision >/dev/null 2>&1; then
-            echo "FATAL: no provisioning profile was created. The App Store Connect API"
-            echo "key most likely needs ADMIN access (App Manager cannot create a signing"
-            echo "certificate). Regenerate the key with Admin and update it in Codemagic."
+            echo "FATAL: still no provisioning profile — see errors above."
             exit 1
           fi
           cd lineup/ios/App
