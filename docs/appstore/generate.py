@@ -7,7 +7,7 @@ CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 os.makedirs(OUT, exist_ok=True)
 
 # 6.9" iPhone App Store size
-W, H = 1290, 2796
+W, H = 1284, 2778
 
 # Brand tokens
 BG = "#F5F2EC"        # app background
