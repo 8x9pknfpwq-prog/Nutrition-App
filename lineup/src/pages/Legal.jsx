@@ -23,8 +23,9 @@ function Privacy() {
 
       <H>What we collect</H>
       <P>
-        <strong>Account info:</strong> your email address and a username, which you provide when you sign
-        up. Passwords are stored only as salted hashes by our authentication provider — we never see them.
+        <strong>Account info:</strong> your first and last name, email address, and a username, which you
+        provide when you sign up, plus a phone number if you choose to add one (optional). Passwords are
+        stored only as salted hashes by our authentication provider — we never see them.
       </P>
       <P>
         <strong>Your contributions:</strong> the wait-time reports and place suggestions you submit,

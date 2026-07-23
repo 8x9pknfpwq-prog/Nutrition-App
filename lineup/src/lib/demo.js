@@ -250,7 +250,7 @@ function forecastNowByBar(dow, hour) {
   return out;
 }
 const userById = (id) => db.users.find((u) => u.id === id);
-const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, createdAt: u.createdAt || new Date(), isAdmin: true });
+const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, firstName: u.firstName || '', lastName: u.lastName || '', phone: u.phone || '', createdAt: u.createdAt || new Date(), isAdmin: true });
 
 function acceptedFriendIds(userId) {
   return db.friendships
@@ -323,13 +323,17 @@ export const demoSocket = new DemoSocket();
 
 // --- demo API (mirrors src/lib/api.js) -----------------------------------
 export const demoApi = {
-  async signup({ email, username, password }) {
+  async signup({ email, username, password, firstName, lastName, phone }) {
     if (!email || !username || !password) throw apiError('email, username and password are required');
     if (password.length < 6) throw apiError('Password must be at least 6 characters');
     const e = email.toLowerCase();
     if (db.users.some((u) => u.email === e)) throw apiError('That email is already taken', 409);
     if (db.users.some((u) => u.username === username)) throw apiError('That username is already taken', 409);
-    const user = { id: uid(), email: e, username, password, avatarInitial: username[0].toUpperCase(), createdAt: new Date() };
+    const user = {
+      id: uid(), email: e, username, password, avatarInitial: username[0].toUpperCase(),
+      firstName: (firstName || '').trim(), lastName: (lastName || '').trim(), phone: (phone || '').trim(),
+      createdAt: new Date(),
+    };
     db.users.push(user);
     sessionUserId = user.id;
     localStorage.setItem(SESSION_KEY, user.id);

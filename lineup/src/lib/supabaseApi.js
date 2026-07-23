@@ -63,7 +63,7 @@ export async function getSupabaseUser() {
   if (!s) return null;
   const { data: prof } = await supabase
     .from('profiles')
-    .select('username, avatar_initial, is_admin')
+    .select('username, avatar_initial, is_admin, first_name, last_name, phone')
     .eq('id', s.user.id)
     .single();
   const email = s.user.email || '';
@@ -72,17 +72,27 @@ export async function getSupabaseUser() {
     email,
     username: prof?.username || email.split('@')[0],
     avatarInitial: prof?.avatar_initial || (email[0] || '?').toUpperCase(),
+    firstName: prof?.first_name || '',
+    lastName: prof?.last_name || '',
+    phone: prof?.phone || '',
     isAdmin: prof?.is_admin === true,
   };
 }
 
 export const supabaseApi = {
   // ── auth ──────────────────────────────────────────────────────────────────
-  async signup({ email, username, password }) {
+  async signup({ email, username, password, firstName, lastName, phone }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } },
+      options: {
+        data: {
+          username,
+          first_name: (firstName || '').trim(),
+          last_name: (lastName || '').trim(),
+          phone: (phone || '').trim(),
+        },
+      },
     });
     if (error) throw new Error(error.message);
     if (!data.session) throw apiErr('Account created — check your email to confirm, then log in.', 400);

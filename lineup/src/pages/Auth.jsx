@@ -2,17 +2,21 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
-import { IS_DEMO as DEMO } from '../lib/mode.js';
+
+const inputCls =
+  'w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink';
 
 export default function Auth() {
   const { login, signup, requestPasswordReset } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
   const [forgot, setForgot] = useState(false);
   const [sent, setSent] = useState(false);
-  // Prefill the demo account so the published demo is one click to enter.
-  const [email, setEmail] = useState(DEMO ? 'maya@lineup.app' : '');
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState(DEMO ? 'password123' : '');
+  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +29,7 @@ export default function Auth() {
         await requestPasswordReset(email);
         setSent(true);
       } else if (tab === 'signup') {
-        await signup(email, username, password);
+        await signup({ email, username, password, firstName, lastName, phone });
       } else {
         await login(email, password);
       }
@@ -49,16 +53,10 @@ export default function Auth() {
       <div className="mb-8 flex flex-col items-center text-center">
         <NYCLinesLogo variant="light" height={56} />
         <p className="mt-3 text-sm text-gray-500">Real-time bar wait times, by the crowd.</p>
-        {DEMO && (
-          <span className="mt-3 rounded-full bg-ink/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Live demo · sample NYC data
-          </span>
-        )}
       </div>
 
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-card">
         {forgot ? (
-          // --- Forgot-password ---
           sent ? (
             <div className="text-center">
               <h2 className="text-base font-bold text-ink">Check your email</h2>
@@ -84,7 +82,7 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+                className={inputCls}
               />
               {error && <p className="text-sm font-medium text-wait-red">{error}</p>}
               <button
@@ -121,6 +119,29 @@ export default function Auth() {
             </div>
 
             <form onSubmit={submit} className="space-y-3">
+              {tab === 'signup' && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="First name"
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Last name"
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
               <input
                 type="email"
                 placeholder="Email"
@@ -128,19 +149,31 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+                className={inputCls}
               />
+
               {tab === 'signup' && (
-                <input
-                  type="text"
-                  placeholder="Username"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
-                />
+                <>
+                  <input
+                    type="tel"
+                    placeholder="Phone (optional)"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputCls}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                </>
               )}
+
               <input
                 type="password"
                 placeholder="Password"
@@ -148,7 +181,7 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink"
+                className={inputCls}
               />
 
               {error && <p className="text-sm font-medium text-wait-red">{error}</p>}
@@ -164,16 +197,15 @@ export default function Auth() {
 
             {tab === 'login' && (
               <button
-                onClick={() => { setForgot(true); setError(''); }}
+                onClick={() => {
+                  setForgot(true);
+                  setError('');
+                }}
                 className="mt-3 w-full text-center text-sm font-medium text-gray-500"
               >
                 Forgot password?
               </button>
             )}
-
-            <p className="mt-4 text-center text-xs text-gray-400">
-              Try the demo: <span className="font-medium text-gray-500">maya@lineup.app</span> / password123
-            </p>
           </>
         )}
       </div>
