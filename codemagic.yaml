@@ -22,9 +22,11 @@ workflows:
     integrations:
       app_store_connect: nyc-lines-asc
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.nyclines.app
+      # Signing is handled in the "Set up code signing" script below, which
+      # CREATES the certificate + provisioning profile via the API key (needed
+      # because this is a fresh account with none yet). Do not add an
+      # `ios_signing:` block here — that only fetches existing profiles and
+      # fails on a first build.
       vars:
         BUNDLE_ID: "com.nyclines.app"
         XCODE_WORKSPACE: "lineup/ios/App/App.xcworkspace"
