@@ -129,6 +129,13 @@ Declare these under **App Privacy → Get Started**. Data types we collect:
 - **Other User Content** (check-ins, wait reports, place suggestions) —
   linked to identity · Purpose: App Functionality
 
+**Contacts**
+- **Contacts** — **not** linked to identity · Purpose: App Functionality ·
+  **Not** used for tracking. Only if the user taps "Find from contacts." We read
+  contacts on-device to check which are already registered users; we never
+  upload or store the address book, and we only send phone numbers to look for
+  matches (nothing is retained).
+
 **Location**
 - **Coarse Location** — **not** linked to identity · Purpose: App Functionality ·
   **Not** used for tracking. We use it in the browser to center the map/sort by
