@@ -69,12 +69,14 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE --create
           keychain add-certificates
+          # Run use-profiles from inside the iOS project so it reliably binds
+          # the profile to the App target (project is nested at lineup/ios/App).
+          cd lineup/ios/App
           xcode-project use-profiles
       - name: Build IPA
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+          cd lineup/ios/App
+          xcode-project build-ipa --workspace App.xcworkspace --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
