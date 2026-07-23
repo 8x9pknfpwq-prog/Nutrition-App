@@ -127,26 +127,24 @@ limit of 2 and force you to revoke certs). One-time setup:
    **Apple Distribution** certificate (they were the throwaway ones). You'll
    create exactly one fresh, permanent one below.
 2. **Run the Codemagic build once** with no `CERT_PRIVATE_KEY` set. It
-   generates a key, creates the certificate, and near the end of the
-   **Set up code signing** step prints a block like:
-   ```
-   ----------------------- CERT_PRIVATE_KEY BEGIN -------------------
-   <one long line>
-   ----------------------- CERT_PRIVATE_KEY END ---------------------
-   ```
-3. **Copy that one long line** (between the markers) and add it in Codemagic →
-   your app → **Environment variables** as:
+   generates a key, creates the certificate, and saves the key as a build
+   **artifact named `cert_key.b64`**.
+3. **Download `cert_key.b64`** from that build's **Artifacts** section (do *not*
+   copy the key out of the logs — a 2200-char line wraps/truncates when copied
+   from a log viewer and corrupts the value). Open the downloaded file, select
+   **all** of its contents, and add them in Codemagic → your app →
+   **Environment variables** as:
    - **Name:** `CERT_PRIVATE_KEY`
    - **Group:** `nyc_lines_env`
    - **Secure:** ✅ checked
 4. **Re-run the build.** From now on every build reuses the same certificate —
-   no new certs, no revoke dance. If you ever see it print the block again, it
-   means the var wasn't picked up (check the name/group and that it's in the
-   group this workflow loads).
+   no new certs, no revoke dance. If you ever see the `cert_key.b64` artifact
+   appear again, the var wasn't picked up (check the name/group and that it's in
+   the group this workflow loads).
 
-> The printed value is a private signing key. It only appears in your own
-> Codemagic build log; treat it like a password — don't paste it anywhere
-> public, and once it's stored as the secure env var you can clear that log.
+> `cert_key.b64` is a private signing key. It only appears in your own
+> Codemagic account; treat it like a password — don't share it, and once it's
+> stored as the secure env var you can delete the artifact/build.
 
 ## 6. App Store Connect
 

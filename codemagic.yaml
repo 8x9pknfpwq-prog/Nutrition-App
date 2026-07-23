@@ -128,15 +128,17 @@ workflows:
           # env var named CERT_PRIVATE_KEY (group nyc_lines_env). After that,
           # every build reuses this same certificate and never creates another.
           if [ "$BOOTSTRAP" = "1" ]; then
+            # Write the key to a downloadable ARTIFACT (cert_key.b64) rather than
+            # relying on copying a 2200-char line out of the log viewer, which
+            # truncates/wraps and corrupts the value. Download that artifact, open
+            # it, select-all, and paste into a SECURED env var CERT_PRIVATE_KEY.
+            openssl base64 -A -in /tmp/cert_key.pem > "$CM_BUILD_DIR/cert_key.b64"
             echo "=================================================================="
-            echo " ONE-TIME SETUP — copy the single line between the markers below"
-            echo " into a SECURED environment variable named CERT_PRIVATE_KEY in"
-            echo " the nyc_lines_env group, then re-run. Future builds will reuse"
-            echo " this certificate instead of creating a new one each time."
-            echo "----------------------- CERT_PRIVATE_KEY BEGIN -------------------"
-            openssl base64 -A -in /tmp/cert_key.pem
-            echo ""
-            echo "----------------------- CERT_PRIVATE_KEY END ---------------------"
+            echo " ONE-TIME SETUP — the signing key was saved as a build ARTIFACT"
+            echo " named 'cert_key.b64'. In this build's Artifacts, DOWNLOAD that"
+            echo " file, open it, select ALL of its contents, and paste them into a"
+            echo " SECURED environment variable CERT_PRIVATE_KEY (group nyc_lines_env)."
+            echo " Then re-run. Do NOT copy the key out of these logs — use the file."
             echo "=================================================================="
           fi
       - name: Build IPA
@@ -148,6 +150,9 @@ workflows:
       - lineup/ios/App/build/ios/ipa/*.ipa
       - "**/*.ipa"
       - /tmp/xcodebuild_logs/*.log
+      # Only produced on the bootstrap run (when CERT_PRIVATE_KEY is unset):
+      # the signing key to store as the CERT_PRIVATE_KEY env var.
+      - cert_key.b64
     publishing:
       app_store_connect:
         auth: integration
