@@ -82,7 +82,18 @@ workflows:
       - name: Build IPA
         script: |
           cd lineup/ios/App
-          xcode-project build-ipa --workspace App.xcworkspace --scheme App
+          # Read the exact team + profile that was just created, and pass them
+          # straight to the archive so signing can't fail to bind.
+          PROFILE=$(ls -t ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -n 1)
+          echo "Using profile file: $PROFILE"
+          security cms -D -i "$PROFILE" > /tmp/pp.plist
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/pp.plist)
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
+          echo "Signing with DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PROFILE_UUID"
+          echo "Bundle id in project:"; grep -m1 PRODUCT_BUNDLE_IDENTIFIER App.xcodeproj/project.pbxproj
+          xcode-project build-ipa \
+            --workspace App.xcworkspace --scheme App \
+            --archive-xcargs "COMPILER_INDEX_STORE_ENABLE=NO DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE_SPECIFIER=$PROFILE_UUID"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
