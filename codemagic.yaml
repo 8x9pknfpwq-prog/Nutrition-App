@@ -89,7 +89,9 @@ workflows:
           cd lineup/ios/App
           xcode-project build-ipa --workspace App.xcworkspace --scheme App
     artifacts:
-      - build/ios/ipa/*.ipa
+      # build-ipa runs inside lineup/ios/App, so the IPA lands there.
+      - lineup/ios/App/build/ios/ipa/*.ipa
+      - "**/*.ipa"
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
