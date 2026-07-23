@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, X, Search, Check, Contact, Share2 } from 'lucide-react';
 import Avatar from '../components/Avatar.jsx';
 import { api } from '../lib/api.js';
@@ -170,9 +171,11 @@ function AddFriendModal({ onClose, onChanged }) {
 
 export default function Friends() {
   const { showToast } = useToast();
+  const location = useLocation();
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
+  // Auto-open the add-friends flow when routed here from the map nudge.
+  const [showAdd, setShowAdd] = useState(() => !!location.state?.addFriends);
 
   const load = useCallback(async () => {
     const [f, p] = await Promise.all([api.friends(), api.pending()]);
@@ -234,9 +237,18 @@ export default function Friends() {
           {friends.length} friend{friends.length === 1 ? '' : 's'}
         </h2>
         {friends.length === 0 ? (
-          <p className="py-10 text-center text-sm text-gray-400">
-            No friends yet — tap + to add someone.
-          </p>
+          <div className="rounded-2xl bg-white p-5 text-center shadow-card">
+            <p className="text-sm font-semibold text-ink">See where your friends are out tonight</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Find the ones already on NYC Lines from your contacts, or invite a few.
+            </p>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <Contact size={16} /> Find friends
+            </button>
+          </div>
         ) : (
           <div className="space-y-2">
             {friends.map((f) => (

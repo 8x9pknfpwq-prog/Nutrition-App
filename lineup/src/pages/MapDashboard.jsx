@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import MapView from '../components/MapView.jsx';
 import BottomSheet from '../components/BottomSheet.jsx';
 import BarCard from '../components/BarCard.jsx';
@@ -28,9 +30,13 @@ function milesBetween(a, b) {
 
 export default function MapDashboard() {
   const socket = useSocket();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [bars, setBars] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [hideFriendsNudge, setHideFriendsNudge] = useState(
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('nyc_hide_friends_nudge') === '1'
+  );
   const [filters, setFilters] = useState([]);
   const [mode, setMode] = useState('bar'); // 'bar' | 'froyo'
   const [query, setQuery] = useState('');
@@ -198,6 +204,33 @@ export default function MapDashboard() {
         <div className="mt-3">
           <FilterPills active={filters} onToggle={toggleFilter} />
         </div>
+
+        {/* Optional, dismissible nudge — value-first, never a blocker. */}
+        {friends.length === 0 && !hideFriendsNudge && (
+          <button
+            onClick={() => navigate('/friends', { state: { addFriends: true } })}
+            className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-left text-white"
+          >
+            <Users size={20} className="shrink-0" />
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">See where your friends are out tonight</span>
+              <span className="block text-xs text-white/70">Find friends already on NYC Lines</span>
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Dismiss"
+              onClick={(e) => {
+                e.stopPropagation();
+                setHideFriendsNudge(true);
+                try { localStorage.setItem('nyc_hide_friends_nudge', '1'); } catch { /* ignore */ }
+              }}
+              className="shrink-0 rounded-full p-1 text-white/60 hover:text-white"
+            >
+              <X size={16} />
+            </span>
+          </button>
+        )}
 
         <div className="no-scrollbar mt-3 flex-1 space-y-2.5 overflow-y-auto pb-28">
           {loading ? (
