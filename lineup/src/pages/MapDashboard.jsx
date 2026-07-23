@@ -159,25 +159,28 @@ export default function MapDashboard() {
       </div>
 
       {/* Bottom sheet */}
-      <BottomSheet peekHeight={340}>
-        <div className="pt-3">
-          <h1 className="text-xl font-bold text-ink">
-            <span className="stat-number" style={isFroyo ? { color: '#E84A8A' } : undefined}>
-              {visible.length}
-            </span>{' '}
-            {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : nounPlural}
-          </h1>
-          <p className="truncate text-sm text-gray-500">
-            {query.trim()
-              ? `for “${query.trim()}”`
-              : userLocation
-              ? 'Nearest to you'
-              : 'East Village · Lower East Side'}
-          </p>
-        </div>
-
+      <BottomSheet
+        peekHeight={340}
+        header={
+          <div className="pb-1">
+            <h1 className="text-xl font-bold text-ink">
+              <span className="stat-number" style={isFroyo ? { color: '#E84A8A' } : undefined}>
+                {visible.length}
+              </span>{' '}
+              {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : nounPlural}
+            </h1>
+            <p className="truncate text-sm text-gray-500">
+              {query.trim()
+                ? `for “${query.trim()}”`
+                : userLocation
+                ? 'Nearest to you'
+                : 'East Village · Lower East Side'}
+            </p>
+          </div>
+        }
+      >
         {/* Search */}
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+        <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
           <Search size={16} className="shrink-0 text-gray-400" />
           <input
             value={query}
