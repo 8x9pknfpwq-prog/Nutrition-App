@@ -92,10 +92,13 @@ workflows:
           BOOTSTRAP=0
           if [ -n "${CERT_PRIVATE_KEY:-}" ]; then
             echo "Found stored signing key — reusing the existing certificate."
-            if ! echo "$CERT_PRIVATE_KEY" | openssl base64 -A -d > /tmp/cert_key.pem 2>/dev/null; then
+            # Strip ALL whitespace before decoding: valid base64 contains none,
+            # so this harmlessly repairs a value that picked up line-wraps or
+            # stray spaces when copied out of the build log.
+            if ! printf '%s' "$CERT_PRIVATE_KEY" | tr -d '[:space:]' | openssl base64 -A -d > /tmp/cert_key.pem 2>/dev/null; then
               echo "ERROR: CERT_PRIVATE_KEY could not be base64-decoded."
               echo "Re-copy the SINGLE line between the BEGIN/END markers from the"
-              echo "bootstrap build log — no spaces, no line breaks, nothing trimmed."
+              echo "bootstrap build log — nothing trimmed from either end."
               exit 1
             fi
             if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
