@@ -54,7 +54,7 @@ function AddFriendModal({ onClose, onChanged }) {
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by username"
+            placeholder="Username or phone number"
             className="flex-1 bg-transparent py-3 text-sm outline-none"
           />
         </div>
@@ -62,7 +62,9 @@ function AddFriendModal({ onClose, onChanged }) {
         <div className="no-scrollbar mt-3 max-h-72 space-y-2 overflow-y-auto">
           {searching && <p className="py-4 text-center text-sm text-gray-400">Searching…</p>}
           {!searching && q && results.length === 0 && (
-            <p className="py-4 text-center text-sm text-gray-400">No users found.</p>
+            <p className="py-4 text-center text-sm text-gray-400">
+              No one found. Enter a full username or 10-digit phone number.
+            </p>
           )}
           {results.map((u) => (
             <div key={u.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">

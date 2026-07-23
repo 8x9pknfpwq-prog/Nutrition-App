@@ -373,12 +373,22 @@ export const supabaseApi = {
     const id = await myId();
     const term = (q || '').trim();
     if (!term || !id) return { users: [] };
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_initial')
-      .ilike('username', `%${term}%`)
-      .neq('id', id)
-      .limit(10);
+    // A full phone number (10+ digits) looks people up by number; anything else
+    // is treated as a username search. Phone numbers are never returned.
+    const digits = term.replace(/\D/g, '');
+    let users;
+    if (digits.length >= 10) {
+      const { data } = await supabase.rpc('find_users_by_phone', { p: term });
+      users = (data || []).filter((u) => u.id !== id);
+    } else {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_initial')
+        .ilike('username', `%${term}%`)
+        .neq('id', id)
+        .limit(10);
+      users = data || [];
+    }
     const { data: fs } = await supabase
       .from('friendships')
       .select('from_user, to_user, status')

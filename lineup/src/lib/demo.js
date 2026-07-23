@@ -506,7 +506,18 @@ export const demoApi = {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     const term = (q || '').toLowerCase().trim();
     if (!term) return { users: [] };
-    const matches = db.users.filter((u) => u.id !== sessionUserId && u.username.toLowerCase().includes(term)).slice(0, 10);
+    const digits = term.replace(/\D/g, '');
+    const byPhone = digits.length >= 10;
+    const matches = db.users
+      .filter((u) => {
+        if (u.id === sessionUserId) return false;
+        if (byPhone) {
+          const uDigits = (u.phone || '').replace(/\D/g, '');
+          return uDigits.length >= 10 && uDigits.slice(-10) === digits.slice(-10);
+        }
+        return u.username.toLowerCase().includes(term);
+      })
+      .slice(0, 10);
     const statusFor = (otherId) => {
       const f = db.friendships.find(
         (x) => (x.fromUserId === sessionUserId && x.toUserId === otherId) || (x.fromUserId === otherId && x.toUserId === sessionUserId)

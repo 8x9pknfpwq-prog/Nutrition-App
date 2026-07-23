@@ -57,6 +57,11 @@ function Privacy() {
         wait-time data (the numbers on the map and the forecasts) is visible to everyone, but is not tied
         to your identity.
       </P>
+      <P>
+        <strong>Finding friends:</strong> if you add a phone number, someone who already has your full
+        number can use it to find your account and send you a friend request. Your phone number itself is
+        never shown to other users, and we do not upload or scan your device’s contacts.
+      </P>
 
       <H>Your choices</H>
       <P>
