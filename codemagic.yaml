@@ -81,14 +81,7 @@ workflows:
             --certificate-key=@file:/tmp/cert_key.pem \
             --create
           keychain add-certificates
-          echo "===== provisioning profiles present ====="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>&1 || true
-          echo "===== codesigning identities ====="
           security find-identity -v -p codesigning || true
-          if ! ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision >/dev/null 2>&1; then
-            echo "FATAL: still no provisioning profile — see errors above."
-            exit 1
-          fi
           cd lineup/ios/App
           xcode-project use-profiles
       - name: Build IPA
