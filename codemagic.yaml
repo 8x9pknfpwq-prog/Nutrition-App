@@ -96,4 +96,7 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload the build only. Internal testers get it automatically once
+        # processed; set this to true (and fill in TestFlight test info) later
+        # when you want to submit to EXTERNAL beta reviewers.
+        submit_to_testflight: false
