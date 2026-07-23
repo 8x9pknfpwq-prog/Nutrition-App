@@ -72,19 +72,25 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          # Fresh account: a provisioning profile can't be created without a
-          # distribution certificate, so create that first (ignore if it exists).
+          echo "===== creating distribution certificate ====="
           app-store-connect create-certificate --type IOS_DISTRIBUTION --save \
-            || echo "certificate step skipped (may already exist)"
-          # Now create + download the App Store provisioning profile.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create
-          keychain add-certificates
-          echo "=== Provisioning profiles present ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>&1 || echo "NONE"
-          echo "=== Codesigning identities ==="
+            || echo ">>> create-certificate returned non-zero (see error above)"
+          echo "===== fetching/creating signing files ====="
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create \
+            || echo ">>> fetch-signing-files returned non-zero (see error above)"
+          keychain add-certificates || true
+          echo "===== provisioning profiles present ====="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>&1 || true
+          echo "===== codesigning identities ====="
           security find-identity -v -p codesigning || true
-          # Now that a certificate + profile exist, bind them to the App target.
+          # Stop here with a clear message if no profile was actually created,
+          # rather than continuing to a doomed archive.
+          if ! ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision >/dev/null 2>&1; then
+            echo "FATAL: no provisioning profile was created. The App Store Connect API"
+            echo "key most likely needs ADMIN access (App Manager cannot create a signing"
+            echo "certificate). Regenerate the key with Admin and update it in Codemagic."
+            exit 1
+          fi
           cd lineup/ios/App
           xcode-project use-profiles
       - name: Build IPA
