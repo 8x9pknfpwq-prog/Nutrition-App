@@ -50,6 +50,12 @@ workflows:
           cd lineup
           [ -d ios ] || npx cap add ios
           npx cap sync ios
+      - name: Force the bundle identifier on the App target
+        script: |
+          cd lineup/ios/App
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = [^;]*;/PRODUCT_BUNDLE_IDENTIFIER = com.nyclines.app;/g' App.xcodeproj/project.pbxproj
+          echo "Bundle IDs now set to:"
+          grep PRODUCT_BUNDLE_IDENTIFIER App.xcodeproj/project.pbxproj
       - name: Add Info.plist usage strings
         script: |
           PLIST="lineup/ios/App/App/Info.plist"
