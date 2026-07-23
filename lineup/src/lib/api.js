@@ -67,6 +67,7 @@ const realApi = {
 
   // users
   searchUsers: (q) => request(`/users/search?q=${encodeURIComponent(q)}`),
+  matchContacts: (phones) => request('/users/match-contacts', { method: 'POST', body: { phones } }),
   myStats: () => request('/users/me/stats'),
 };
 

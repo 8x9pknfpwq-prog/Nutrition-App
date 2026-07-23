@@ -68,6 +68,8 @@ workflows:
           PLIST="lineup/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription NYC Lines uses your location to show the nearest bars and center the map." "$PLIST" \
             || /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string NYC Lines uses your location to show the nearest bars and center the map." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :NSContactsUsageDescription NYC Lines checks your contacts to find friends who already use the app. Your contacts are never stored or shared." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string NYC Lines checks your contacts to find friends who already use the app. Your contacts are never stored or shared." "$PLIST"
       - name: Install CocoaPods dependencies
         script: |
           cd lineup/ios/App

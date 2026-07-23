@@ -528,6 +528,28 @@ export const demoApi = {
     };
     return { users: matches.map((u) => ({ id: u.id, username: u.username, avatarInitial: u.avatarInitial, friendStatus: statusFor(u.id) })) };
   },
+  async matchContacts(phones) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const wanted = (phones || [])
+      .map((p) => (p || '').replace(/\D/g, ''))
+      .filter((d) => d.length >= 10)
+      .map((d) => d.slice(-10));
+    const set = new Set(wanted);
+    const statusFor = (otherId) => {
+      const f = db.friendships.find(
+        (x) => (x.fromUserId === sessionUserId && x.toUserId === otherId) || (x.fromUserId === otherId && x.toUserId === sessionUserId)
+      );
+      if (!f) return 'none';
+      if (f.status === 'accepted') return 'friends';
+      return f.fromUserId === sessionUserId ? 'requested' : 'incoming';
+    };
+    const matches = db.users.filter((u) => {
+      if (u.id === sessionUserId) return false;
+      const d = (u.phone || '').replace(/\D/g, '');
+      return d.length >= 10 && set.has(d.slice(-10));
+    });
+    return { users: matches.map((u) => ({ id: u.id, username: u.username, avatarInitial: u.avatarInitial, friendStatus: statusFor(u.id) })) };
+  },
   async myStats() {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     const checkIns = db.reports.filter((r) => r.userId === sessionUserId).length;

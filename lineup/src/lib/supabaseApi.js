@@ -411,6 +411,36 @@ export const supabaseApi = {
     };
   },
 
+  // Given a batch of phone numbers from the device's contacts, return the ones
+  // already on NYC Lines (never returns phone numbers). Stateless lookup.
+  async matchContacts(phones) {
+    const id = await myId();
+    const list = (phones || []).filter(Boolean);
+    if (!id || list.length === 0) return { users: [] };
+    const { data: users, error } = await supabase.rpc('match_contacts', { phones: list });
+    if (error) throw new Error(error.message);
+    const { data: fs } = await supabase
+      .from('friendships')
+      .select('from_user, to_user, status')
+      .or(`from_user.eq.${id},to_user.eq.${id}`);
+    const statusFor = (other) => {
+      const f = (fs || []).find(
+        (x) => (x.from_user === id && x.to_user === other) || (x.to_user === id && x.from_user === other)
+      );
+      if (!f) return 'none';
+      if (f.status === 'accepted') return 'friends';
+      return f.from_user === id ? 'requested' : 'incoming';
+    };
+    return {
+      users: (users || []).map((u) => ({
+        id: u.id,
+        username: u.username,
+        avatarInitial: u.avatar_initial,
+        friendStatus: statusFor(u.id),
+      })),
+    };
+  },
+
   async myStats() {
     const id = await myId();
     if (!id) return { checkIns: 0, friends: 0 };
