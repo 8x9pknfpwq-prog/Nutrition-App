@@ -78,6 +78,10 @@ workflows:
           agvtool new-version -all "$(($BUILD_NUMBER))"
       - name: Set up code signing
         script: |
+          # Fail the step immediately if any signing command fails, so problems
+          # surface HERE with the real error instead of being masked and turning
+          # into a cryptic "exit 65" at Build IPA.
+          set -eo pipefail
           keychain initialize
           # Reuse ONE distribution certificate on every build. A certificate is
           # tied to a private key; fetch-signing-files reuses the existing cert
@@ -85,12 +89,25 @@ workflows:
           # match exists. The old recipe generated a fresh key each build, so no
           # cert ever matched and a new one was minted every time (Apple caps
           # you at 2). Now we keep the key stable via CERT_PRIVATE_KEY.
-          if [ -n "$CERT_PRIVATE_KEY" ]; then
+          BOOTSTRAP=0
+          if [ -n "${CERT_PRIVATE_KEY:-}" ]; then
             echo "Found stored signing key — reusing the existing certificate."
-            echo "$CERT_PRIVATE_KEY" | openssl base64 -A -d > /tmp/cert_key.pem
+            if ! echo "$CERT_PRIVATE_KEY" | openssl base64 -A -d > /tmp/cert_key.pem 2>/dev/null; then
+              echo "ERROR: CERT_PRIVATE_KEY could not be base64-decoded."
+              echo "Re-copy the SINGLE line between the BEGIN/END markers from the"
+              echo "bootstrap build log — no spaces, no line breaks, nothing trimmed."
+              exit 1
+            fi
+            if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+              echo "ERROR: CERT_PRIVATE_KEY decoded but is not a valid RSA key —"
+              echo "the stored value is likely truncated or wrapped. Delete the env"
+              echo "var, re-run to bootstrap a fresh key, and copy the whole line."
+              exit 1
+            fi
           else
             echo "No stored signing key — generating one and creating the certificate (one time only)."
             openssl genrsa -out /tmp/cert_key.pem 2048
+            BOOTSTRAP=1
           fi
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
@@ -98,12 +115,16 @@ workflows:
             --create
           keychain add-certificates
           security find-identity -v -p codesigning || true
-          cd lineup/ios/App
-          xcode-project use-profiles
+          ( cd lineup/ios/App && xcode-project use-profiles )
+          # Diagnostic: show where profiles landed (non-fatal) so the log tells us
+          # if signing really completed.
+          echo "Installed provisioning profiles:"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/" 2>/dev/null || true
           # One-time bootstrap: print the key so you can store it as a SECURED
           # env var named CERT_PRIVATE_KEY (group nyc_lines_env). After that,
           # every build reuses this same certificate and never creates another.
-          if [ -z "$CERT_PRIVATE_KEY" ]; then
+          if [ "$BOOTSTRAP" = "1" ]; then
             echo "=================================================================="
             echo " ONE-TIME SETUP — copy the single line between the markers below"
             echo " into a SECURED environment variable named CERT_PRIVATE_KEY in"
