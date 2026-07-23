@@ -72,13 +72,18 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
+          # Fresh account: a provisioning profile can't be created without a
+          # distribution certificate, so create that first (ignore if it exists).
+          app-store-connect create-certificate --type IOS_DISTRIBUTION --save \
+            || echo "certificate step skipped (may already exist)"
+          # Now create + download the App Store provisioning profile.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE --create
           keychain add-certificates
-          # Run use-profiles from inside the iOS project so it reliably binds
-          # the profile to the App target (project is nested at lineup/ios/App).
-          cd lineup/ios/App
-          xcode-project use-profiles
+          echo "=== Provisioning profiles present ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>&1 || echo "NONE"
+          echo "=== Codesigning identities ==="
+          security find-identity -v -p codesigning || true
       - name: Build IPA
         script: |
           cd lineup/ios/App
