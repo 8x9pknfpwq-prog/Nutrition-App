@@ -419,6 +419,32 @@ export const supabaseApi = {
     return { ok: true };
   },
 
+  // Admin: open reports queue.
+  async listReports() {
+    const { data, error } = await supabase
+      .from('content_reports')
+      .select('id, target_type, target_id, reason, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return {
+      reports: (data || []).map((r) => ({
+        id: r.id,
+        targetType: r.target_type,
+        targetId: r.target_id,
+        reason: r.reason,
+        createdAt: r.created_at,
+      })),
+    };
+  },
+
+  async resolveReport(id) {
+    const { error } = await supabase.from('content_reports').update({ status: 'resolved' }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+
   async acceptFriend(friendshipId) {
     const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
     if (error) throw new Error(error.message);

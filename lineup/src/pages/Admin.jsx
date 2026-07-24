@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Check, X, Clock, Sparkles } from 'lucide-react';
+import { Check, X, Clock, Sparkles, Flag } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -16,6 +16,7 @@ export default function Admin() {
   const { showToast } = useToast();
   const [pending, setPending] = useState([]);
   const [venues, setVenues] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(null); // venue being given hours
@@ -37,15 +38,35 @@ export default function Admin() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ pending }, { bars }] = await Promise.all([api.pendingBars(), api.bars()]);
+      const [{ pending }, { bars }, rep] = await Promise.all([
+        api.pendingBars(),
+        api.bars(),
+        api.listReports().catch(() => ({ reports: [] })),
+      ]);
       setPending(pending);
       setVenues((bars || []).filter((b) => b.approved !== false));
+      setReports(rep.reports || []);
     } catch (e) {
       showToast({ title: 'Could not load suggestions', body: e.message });
     } finally {
       setLoading(false);
     }
   }, [showToast]);
+
+  async function resolveReport(id) {
+    setBusyId(id);
+    try {
+      await api.resolveReport(id);
+      setReports((r) => r.filter((x) => x.id !== id));
+      showToast({ title: 'Report resolved' });
+    } catch (e) {
+      showToast({ title: 'Could not resolve', body: e.message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const venueName = (id) => venues.find((v) => v.id === id)?.name;
 
   useEffect(() => {
     if (user?.isAdmin) load();
@@ -83,6 +104,41 @@ export default function Admin() {
       <p className="mt-0.5 text-sm text-gray-500">
         {loading ? 'Loading…' : `${pending.length} suggestion${pending.length === 1 ? '' : 's'} to review`}
       </p>
+
+      {/* Reported content — review within 24h per our Terms */}
+      {reports.length > 0 && (
+        <section className="mt-4">
+          <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-wait-red">
+            <Flag size={13} /> {reports.length} report{reports.length === 1 ? '' : 's'} to review
+          </h2>
+          <div className="space-y-2">
+            {reports.map((r) => (
+              <div key={r.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {r.targetType === 'venue'
+                      ? `Place: ${venueName(r.targetId) || r.targetId}`
+                      : r.targetType === 'user'
+                      ? 'Reported user'
+                      : 'Reported check-in'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {r.reason ? `${r.reason} · ` : ''}
+                    {timeAgo(r.createdAt)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => resolveReport(r.id)}
+                  disabled={busyId === r.id}
+                  className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                  Resolve
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {!loading && pending.length === 0 && (
         <p className="py-16 text-center text-sm text-gray-400">All caught up — no pending suggestions.</p>

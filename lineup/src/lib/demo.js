@@ -530,6 +530,17 @@ export const demoApi = {
     db.blocks = (db.blocks || []).filter((b) => !(b.blockerId === sessionUserId && b.blockedId === userId));
     return { ok: true };
   },
+  async listReports() {
+    const reports = (db.reportsLog || [])
+      .filter((r) => r.status !== 'resolved')
+      .map((r) => ({ id: r.id, targetType: r.targetType, targetId: r.targetId, reason: r.reason, createdAt: r.createdAt }));
+    return { reports };
+  },
+  async resolveReport(id) {
+    const r = (db.reportsLog || []).find((x) => x.id === id);
+    if (r) r.status = 'resolved';
+    return { ok: true };
+  },
   async notifyFriends(barId) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     const bar = db.bars.find((b) => b.id === barId);

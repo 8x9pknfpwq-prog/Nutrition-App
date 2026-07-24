@@ -22,6 +22,11 @@ create policy content_reports_admin_read on public.content_reports
   for select to authenticated
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
 
+drop policy if exists content_reports_admin_update on public.content_reports;
+create policy content_reports_admin_update on public.content_reports
+  for update to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+
 -- One user blocking another.
 create table if not exists public.user_blocks (
   blocker_id uuid not null references auth.users(id) on delete cascade,

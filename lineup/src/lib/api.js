@@ -75,6 +75,8 @@ const realApi = {
     request('/moderation/report', { method: 'POST', body: { targetType, targetId, reason } }),
   blockUser: (userId) => request('/moderation/block', { method: 'POST', body: { userId } }),
   unblockUser: (userId) => request('/moderation/unblock', { method: 'POST', body: { userId } }),
+  listReports: () => request('/moderation/reports'),
+  resolveReport: (id) => request(`/moderation/reports/${id}/resolve`, { method: 'POST' }),
 };
 
 // Supabase (real shared backend) wins when configured; else demo; else server.
