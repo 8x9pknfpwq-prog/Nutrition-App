@@ -57,6 +57,13 @@ workflows:
           cd lineup
           [ -d ios ] || npx cap add ios
           npx cap sync ios
+      - name: Generate app icon & splash from brand assets
+        script: |
+          cd lineup
+          # Turns assets/icon-only.png (+ splash.png) into the full iOS AppIcon
+          # set and splash. Without this the build ships the default Capacitor
+          # placeholder icon.
+          npx @capacitor/assets generate --ios
       - name: Force the bundle identifier on the App target
         script: |
           cd lineup/ios/App
