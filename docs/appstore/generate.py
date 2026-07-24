@@ -24,8 +24,10 @@ def data_uri(path):
 
 # (source file, caption, accent color)
 SHOTS = [
-    ("821c4a10-IMG_4867.png", "See live bar waits<br>across NYC", INK),
-    ("1949906c-IMG_4868.png", "Find somewhere<br>fast", GREEN),
+    ("01a511e0-IMG_4873.png", "See live bar waits<br>across NYC", INK),
+    ("0c3a181f-IMG_4874.png", "Know the wait<br>before you go", GREEN),
+    ("54fb8219-IMG_4875.png", "See where<br>friends are out", INK),
+    ("5a2d837b-IMG_4876.png", "Save your<br>favorite spots", AMBER),
 ]
 
 TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"><style>
