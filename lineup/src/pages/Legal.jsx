@@ -109,6 +109,13 @@ function Terms() {
         these terms.
       </P>
 
+      <H>Objectionable content &amp; abuse</H>
+      <P>
+        There is zero tolerance for objectionable content or abusive users. You can report a place from
+        its detail sheet and block any user from the Friends screen. We review reported content and remove
+        it — and eject repeat offenders — within 24 hours. Reports and blocks are acted on without notice.
+      </P>
+
       <H>Your content</H>
       <P>
         You keep ownership of what you submit, but grant us a license to display and use it to operate and

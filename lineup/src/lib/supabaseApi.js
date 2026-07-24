@@ -33,6 +33,19 @@ async function myId() {
   return data.session?.user?.id ?? null;
 }
 
+// Ids the current user has blocked OR been blocked by — both directions hide
+// each other from search, friends, and requests.
+async function blockedIds(id) {
+  if (!id) return new Set();
+  const { data } = await supabase
+    .from('user_blocks')
+    .select('blocker_id, blocked_id')
+    .or(`blocker_id.eq.${id},blocked_id.eq.${id}`);
+  const s = new Set();
+  for (const b of data || []) s.add(b.blocker_id === id ? b.blocked_id : b.blocker_id);
+  return s;
+}
+
 function mapBar(b, extra = {}) {
   return {
     id: b.id,
@@ -298,7 +311,10 @@ export const supabaseApi = {
       .select('from_user, to_user')
       .eq('status', 'accepted')
       .or(`from_user.eq.${id},to_user.eq.${id}`);
-    const ids = (fs || []).map((f) => (f.from_user === id ? f.to_user : f.from_user));
+    const blocked = await blockedIds(id);
+    const ids = (fs || [])
+      .map((f) => (f.from_user === id ? f.to_user : f.from_user))
+      .filter((x) => !blocked.has(x));
     if (!ids.length) return { friends: [] };
     const [{ data: profs }, { data: notes }] = await Promise.all([
       supabase.from('profiles').select('id, username, avatar_initial').in('id', ids),
@@ -333,12 +349,15 @@ export const supabaseApi = {
       .eq('to_user', id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
+    const blocked = await blockedIds(id);
     return {
-      pending: (data || []).map((p) => ({
-        id: p.id,
-        createdAt: p.created_at,
-        from: { id: p.from?.id, username: p.from?.username, avatarInitial: p.from?.avatar_initial },
-      })),
+      pending: (data || [])
+        .filter((p) => !blocked.has(p.from?.id))
+        .map((p) => ({
+          id: p.id,
+          createdAt: p.created_at,
+          from: { id: p.from?.id, username: p.from?.username, avatarInitial: p.from?.avatar_initial },
+        })),
     };
   },
 
@@ -346,11 +365,57 @@ export const supabaseApi = {
     const id = await myId();
     if (!id) throw apiErr('Not authenticated', 401);
     if (toUserId === id) throw apiErr("You can't friend yourself");
+    const blocked = await blockedIds(id);
+    if (blocked.has(toUserId)) throw apiErr('You cannot add a blocked user', 403);
     const { error } = await supabase.from('friendships').insert({ from_user: id, to_user: toUserId, status: 'pending' });
     if (error) {
       if (error.code === '23505') throw apiErr('A friend request already exists', 409);
       throw new Error(error.message);
     }
+    return { ok: true };
+  },
+
+  // Flag content (a venue, a check-in, or a user) for admin review.
+  async reportContent(targetType, targetId, reason) {
+    const id = await myId();
+    if (!id) throw apiErr('Not authenticated', 401);
+    const { error } = await supabase.from('content_reports').insert({
+      reporter_id: id,
+      target_type: targetType,
+      target_id: String(targetId),
+      reason: reason || null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+
+  // Block a user: hide each other everywhere and drop any friendship/request.
+  async blockUser(userId) {
+    const id = await myId();
+    if (!id) throw apiErr('Not authenticated', 401);
+    if (userId === id) throw apiErr("You can't block yourself");
+    await supabase
+      .from('friendships')
+      .delete()
+      .or(
+        `and(from_user.eq.${id},to_user.eq.${userId}),and(from_user.eq.${userId},to_user.eq.${id})`
+      );
+    const { error } = await supabase
+      .from('user_blocks')
+      .upsert({ blocker_id: id, blocked_id: userId }, { onConflict: 'blocker_id,blocked_id' });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  },
+
+  async unblockUser(userId) {
+    const id = await myId();
+    if (!id) throw apiErr('Not authenticated', 401);
+    const { error } = await supabase
+      .from('user_blocks')
+      .delete()
+      .eq('blocker_id', id)
+      .eq('blocked_id', userId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   },
 
@@ -389,10 +454,13 @@ export const supabaseApi = {
         .limit(10);
       users = data || [];
     }
-    const { data: fs } = await supabase
-      .from('friendships')
-      .select('from_user, to_user, status')
-      .or(`from_user.eq.${id},to_user.eq.${id}`);
+    const [{ data: fs }, blocked] = await Promise.all([
+      supabase
+        .from('friendships')
+        .select('from_user, to_user, status')
+        .or(`from_user.eq.${id},to_user.eq.${id}`),
+      blockedIds(id),
+    ]);
     const statusFor = (other) => {
       const f = (fs || []).find(
         (x) => (x.from_user === id && x.to_user === other) || (x.to_user === id && x.from_user === other)
@@ -402,12 +470,14 @@ export const supabaseApi = {
       return f.from_user === id ? 'requested' : 'incoming';
     };
     return {
-      users: (users || []).map((u) => ({
-        id: u.id,
-        username: u.username,
-        avatarInitial: u.avatar_initial,
-        friendStatus: statusFor(u.id),
-      })),
+      users: (users || [])
+        .filter((u) => !blocked.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          avatarInitial: u.avatar_initial,
+          friendStatus: statusFor(u.id),
+        })),
     };
   },
 
@@ -419,10 +489,13 @@ export const supabaseApi = {
     if (!id || list.length === 0) return { users: [] };
     const { data: users, error } = await supabase.rpc('match_contacts', { phones: list });
     if (error) throw new Error(error.message);
-    const { data: fs } = await supabase
-      .from('friendships')
-      .select('from_user, to_user, status')
-      .or(`from_user.eq.${id},to_user.eq.${id}`);
+    const [{ data: fs }, blocked] = await Promise.all([
+      supabase
+        .from('friendships')
+        .select('from_user, to_user, status')
+        .or(`from_user.eq.${id},to_user.eq.${id}`),
+      blockedIds(id),
+    ]);
     const statusFor = (other) => {
       const f = (fs || []).find(
         (x) => (x.from_user === id && x.to_user === other) || (x.to_user === id && x.from_user === other)
@@ -432,12 +505,14 @@ export const supabaseApi = {
       return f.from_user === id ? 'requested' : 'incoming';
     };
     return {
-      users: (users || []).map((u) => ({
-        id: u.id,
-        username: u.username,
-        avatarInitial: u.avatar_initial,
-        friendStatus: statusFor(u.id),
-      })),
+      users: (users || [])
+        .filter((u) => !blocked.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          avatarInitial: u.avatar_initial,
+          friendStatus: statusFor(u.id),
+        })),
     };
   },
 

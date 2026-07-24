@@ -258,6 +258,16 @@ function acceptedFriendIds(userId) {
     .map((f) => (f.fromUserId === userId ? f.toUserId : f.fromUserId));
 }
 
+// Ids the user has blocked or been blocked by (both directions hide each other).
+function demoBlocked(userId) {
+  const s = new Set();
+  for (const b of db.blocks || []) {
+    if (b.blockerId === userId) s.add(b.blockedId);
+    if (b.blockedId === userId) s.add(b.blockerId);
+  }
+  return s;
+}
+
 function recentCheckins(sinceMin = 90) {
   const cutoff = Date.now() - sinceMin * 60 * 1000;
   return db.notifications
@@ -456,7 +466,8 @@ export const demoApi = {
   },
   async friends() {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
-    const ids = acceptedFriendIds(sessionUserId);
+    const blocked = demoBlocked(sessionUserId);
+    const ids = acceptedFriendIds(sessionUserId).filter((id) => !blocked.has(id));
     const friends = ids.map((id) => {
       const u = userById(id);
       const last = recentCheckins(24 * 60).find((n) => n.userId === id);
@@ -471,14 +482,16 @@ export const demoApi = {
   },
   async pending() {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
+    const blocked = demoBlocked(sessionUserId);
     const pending = db.friendships
-      .filter((f) => f.toUserId === sessionUserId && f.status === 'pending')
+      .filter((f) => f.toUserId === sessionUserId && f.status === 'pending' && !blocked.has(f.fromUserId))
       .map((f) => { const u = userById(f.fromUserId); return { id: f.id, createdAt: f.createdAt || new Date(), from: { id: u.id, username: u.username, avatarInitial: u.avatarInitial } }; });
     return { pending };
   },
   async requestFriend(toUserId) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     if (toUserId === sessionUserId) throw apiError("You can't friend yourself");
+    if (demoBlocked(sessionUserId).has(toUserId)) throw apiError('You cannot add a blocked user', 403);
     const exists = db.friendships.some(
       (f) => (f.fromUserId === sessionUserId && f.toUserId === toUserId) || (f.fromUserId === toUserId && f.toUserId === sessionUserId)
     );
@@ -494,6 +507,29 @@ export const demoApi = {
     f.status = 'accepted';
     return { friendship: f };
   },
+  async reportContent(targetType, targetId, reason) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    db.reportsLog = db.reportsLog || [];
+    db.reportsLog.push({ id: uid(), reporterId: sessionUserId, targetType, targetId: String(targetId), reason: reason || null, createdAt: new Date() });
+    return { ok: true };
+  },
+  async blockUser(userId) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    if (userId === sessionUserId) throw apiError("You can't block yourself");
+    db.friendships = db.friendships.filter(
+      (f) => !((f.fromUserId === sessionUserId && f.toUserId === userId) || (f.fromUserId === userId && f.toUserId === sessionUserId))
+    );
+    db.blocks = db.blocks || [];
+    if (!db.blocks.some((b) => b.blockerId === sessionUserId && b.blockedId === userId)) {
+      db.blocks.push({ blockerId: sessionUserId, blockedId: userId, createdAt: new Date() });
+    }
+    return { ok: true };
+  },
+  async unblockUser(userId) {
+    if (!sessionUserId) throw apiError('Not authenticated', 401);
+    db.blocks = (db.blocks || []).filter((b) => !(b.blockerId === sessionUserId && b.blockedId === userId));
+    return { ok: true };
+  },
   async notifyFriends(barId) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
     const bar = db.bars.find((b) => b.id === barId);
@@ -508,9 +544,10 @@ export const demoApi = {
     if (!term) return { users: [] };
     const digits = term.replace(/\D/g, '');
     const byPhone = digits.length >= 10;
+    const blocked = demoBlocked(sessionUserId);
     const matches = db.users
       .filter((u) => {
-        if (u.id === sessionUserId) return false;
+        if (u.id === sessionUserId || blocked.has(u.id)) return false;
         if (byPhone) {
           const uDigits = (u.phone || '').replace(/\D/g, '');
           return uDigits.length >= 10 && uDigits.slice(-10) === digits.slice(-10);
@@ -535,6 +572,7 @@ export const demoApi = {
       .filter((d) => d.length >= 10)
       .map((d) => d.slice(-10));
     const set = new Set(wanted);
+    const blocked = demoBlocked(sessionUserId);
     const statusFor = (otherId) => {
       const f = db.friendships.find(
         (x) => (x.fromUserId === sessionUserId && x.toUserId === otherId) || (x.fromUserId === otherId && x.toUserId === sessionUserId)
@@ -544,7 +582,7 @@ export const demoApi = {
       return f.fromUserId === sessionUserId ? 'requested' : 'incoming';
     };
     const matches = db.users.filter((u) => {
-      if (u.id === sessionUserId) return false;
+      if (u.id === sessionUserId || blocked.has(u.id)) return false;
       const d = (u.phone || '').replace(/\D/g, '');
       return d.length >= 10 && set.has(d.slice(-10));
     });

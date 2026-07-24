@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Flag } from 'lucide-react';
 import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
 import VenuePhoto from './VenuePhoto.jsx';
@@ -133,6 +133,16 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
     }
   }
 
+  async function reportPlace() {
+    if (!window.confirm(`Report ${bar.name} as inappropriate or incorrect? Our team reviews reports within 24 hours.`)) return;
+    try {
+      await api.reportContent('venue', bar.id);
+      showToast({ title: 'Reported', body: "Thanks — we'll review this place." });
+    } catch (e) {
+      showToast({ title: 'Could not report', body: e.message });
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
@@ -222,6 +232,13 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
             />
           </button>
         </div>
+
+          <button
+            onClick={reportPlace}
+            className="mt-4 flex w-full items-center justify-center gap-1.5 py-1 text-xs font-medium text-gray-400 hover:text-wait-red"
+          >
+            <Flag size={13} /> Report this place
+          </button>
 
           <div className="h-3" />
         </div>

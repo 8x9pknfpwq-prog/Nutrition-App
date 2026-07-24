@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, X, Search, Check, Contact, Share2 } from 'lucide-react';
+import { Plus, X, Search, Check, Contact, Share2, Ban } from 'lucide-react';
 import Avatar from '../components/Avatar.jsx';
 import { api } from '../lib/api.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -8,7 +8,7 @@ import { timeAgo } from '../lib/wait.js';
 import { contactsAvailable, readContactPhones } from '../lib/contacts.js';
 import { shareInvite } from '../lib/invite.js';
 
-function FriendRow({ u, onAdd }) {
+function FriendRow({ u, onAdd, onBlock }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
       <Avatar initial={u.avatarInitial} seed={u.username} size={38} />
@@ -25,6 +25,16 @@ function FriendRow({ u, onAdd }) {
           className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
         >
           Add
+        </button>
+      )}
+      {onBlock && (
+        <button
+          onClick={() => onBlock(u)}
+          className="rounded-full p-1.5 text-gray-300 hover:text-wait-red"
+          aria-label={`Block ${u.username}`}
+          title="Block"
+        >
+          <Ban size={16} />
         </button>
       )}
     </div>
@@ -95,6 +105,19 @@ function AddFriendModal({ onClose, onChanged }) {
     }
   }
 
+  async function blockUser(u) {
+    if (!window.confirm(`Block ${u.username}? You won't see each other on NYC Lines.`)) return;
+    try {
+      await api.blockUser(u.id);
+      setResults((r) => r.filter((x) => x.id !== u.id));
+      setContactMatches((m) => (m ? m.filter((x) => x.id !== u.id) : m));
+      showToast({ title: `Blocked ${u.username}` });
+      onChanged?.();
+    } catch (e) {
+      showToast({ title: 'Could not block', body: e.message });
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
@@ -137,7 +160,7 @@ function AddFriendModal({ onClose, onChanged }) {
             </p>
             <div className="no-scrollbar max-h-56 space-y-2 overflow-y-auto">
               {contactMatches.map((u) => (
-                <FriendRow key={u.id} u={u} onAdd={sendRequest} />
+                <FriendRow key={u.id} u={u} onAdd={sendRequest} onBlock={blockUser} />
               ))}
             </div>
           </div>
@@ -161,7 +184,7 @@ function AddFriendModal({ onClose, onChanged }) {
             </p>
           )}
           {results.map((u) => (
-            <FriendRow key={u.id} u={u} onAdd={sendRequest} />
+            <FriendRow key={u.id} u={u} onAdd={sendRequest} onBlock={blockUser} />
           ))}
         </div>
       </div>
@@ -192,6 +215,17 @@ export default function Friends() {
       load();
     } catch (e) {
       showToast({ title: 'Could not accept', body: e.message });
+    }
+  }
+
+  async function blockFriend(f) {
+    if (!window.confirm(`Block ${f.username}? You won't see each other on NYC Lines.`)) return;
+    try {
+      await api.blockUser(f.id);
+      showToast({ title: `Blocked ${f.username}` });
+      load();
+    } catch (e) {
+      showToast({ title: 'Could not block', body: e.message });
     }
   }
 
@@ -262,6 +296,14 @@ export default function Friends() {
                       : 'No recent check-ins'}
                   </p>
                 </div>
+                <button
+                  onClick={() => blockFriend(f)}
+                  className="rounded-full p-1.5 text-gray-300 hover:text-wait-red"
+                  aria-label={`Block ${f.username}`}
+                  title="Block"
+                >
+                  <Ban size={16} />
+                </button>
               </div>
             ))}
           </div>

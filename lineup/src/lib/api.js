@@ -69,6 +69,12 @@ const realApi = {
   searchUsers: (q) => request(`/users/search?q=${encodeURIComponent(q)}`),
   matchContacts: (phones) => request('/users/match-contacts', { method: 'POST', body: { phones } }),
   myStats: () => request('/users/me/stats'),
+
+  // moderation
+  reportContent: (targetType, targetId, reason) =>
+    request('/moderation/report', { method: 'POST', body: { targetType, targetId, reason } }),
+  blockUser: (userId) => request('/moderation/block', { method: 'POST', body: { userId } }),
+  unblockUser: (userId) => request('/moderation/unblock', { method: 'POST', body: { userId } }),
 };
 
 // Supabase (real shared backend) wins when configured; else demo; else server.
