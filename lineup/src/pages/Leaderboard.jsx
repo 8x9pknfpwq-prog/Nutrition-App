@@ -52,7 +52,7 @@ export default function Leaderboard() {
       <Link to="/profile" className="mb-2 -ml-1 inline-flex items-center gap-0.5 text-sm font-medium text-gray-500">
         <ChevronLeft size={18} /> Profile
       </Link>
-      <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-ink">Leaderboard</h1>
+      <h1 className="font-serif text-[30px] font-bold leading-tight tracking-tight text-ink">Leaderboard</h1>
       <p className="mt-1 text-[15px] text-gray-500">The most accurate reporters in the city.</p>
 
       <div className="mt-5 space-y-2">

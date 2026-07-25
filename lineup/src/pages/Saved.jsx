@@ -29,7 +29,7 @@ export default function Saved() {
 
   return (
     <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-5">
-      <h1 className="text-2xl font-extrabold text-ink">Saved</h1>
+      <h1 className="font-serif text-[28px] font-bold tracking-tight text-ink">Saved</h1>
       <p className="mt-0.5 text-sm text-gray-500">Your bookmarked spots</p>
 
       {savedBars.length > 0 && (

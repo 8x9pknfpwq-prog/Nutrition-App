@@ -59,7 +59,7 @@ export default function Profile() {
         <div className="rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.10)] ring-4 ring-white">
           <Avatar initial={user.avatarInitial} seed={user.username} size={92} />
         </div>
-        <h1 className="mt-4 text-[26px] font-extrabold tracking-tight text-ink">{user.username}</h1>
+        <h1 className="mt-4 font-serif text-[28px] font-bold tracking-tight text-ink">{user.username}</h1>
         <p className="text-[15px] text-gray-500">{user.email}</p>
         <div className="mt-3">
           <TrustBadge

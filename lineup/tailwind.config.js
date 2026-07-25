@@ -20,6 +20,7 @@ export default {
       fontFamily: {
         sans: ['IBM Plex Sans', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        serif: ['Spectral', 'Georgia', 'ui-serif', 'serif'],
       },
       boxShadow: {
         card: '0 2px 12px rgba(0,0,0,0.06)',
