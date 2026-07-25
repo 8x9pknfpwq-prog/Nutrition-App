@@ -175,7 +175,7 @@ export const supabaseApi = {
     const { dow, hour } = nycParts();
     const [barsRes, repRes, noteRes, fcRes] = await Promise.all([
       supabase.from('bars').select('*'),
-      supabase.from('reports').select('bar_id, wait_min, created_at').gte('created_at', since),
+      supabase.from('reports').select('bar_id, wait_min, created_at, profiles:user_id(trust_score)').gte('created_at', since),
       supabase
         .from('friend_notifications')
         .select('user_id, bar_id, created_at, profiles:user_id(username, avatar_initial)')
@@ -189,7 +189,7 @@ export const supabaseApi = {
 
     const reportsByBar = {};
     for (const r of repRes.data || []) {
-      (reportsByBar[r.bar_id] ||= []).push({ waitMin: r.wait_min, createdAt: r.created_at });
+      (reportsByBar[r.bar_id] ||= []).push({ waitMin: r.wait_min, createdAt: r.created_at, trust: r.profiles?.trust_score ?? 0 });
     }
     const checkinsByBar = {};
     for (const n of noteRes.data || []) {
@@ -234,7 +234,7 @@ export const supabaseApi = {
     if (error) throw new Error(error.message);
     const { data: reps } = await supabase
       .from('reports')
-      .select('id, wait_min, created_at, profiles:user_id(username, avatar_initial)')
+      .select('id, wait_min, created_at, profiles:user_id(username, avatar_initial, trust_score)')
       .eq('bar_id', id)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -242,10 +242,11 @@ export const supabaseApi = {
       id: r.id,
       waitMin: r.wait_min,
       createdAt: r.created_at,
+      trust: r.profiles?.trust_score ?? 0,
       username: r.profiles?.username,
       avatarInitial: r.profiles?.avatar_initial,
     }));
-    const w = computeWait(reports.map((r) => ({ waitMin: r.waitMin, createdAt: r.createdAt })));
+    const w = computeWait(reports.map((r) => ({ waitMin: r.waitMin, createdAt: r.createdAt, trust: r.trust })));
     return { bar: { ...mapBar(b, w), reports } };
   },
 

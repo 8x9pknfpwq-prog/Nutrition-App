@@ -17,6 +17,11 @@ alter table public.reports
 
 create index if not exists reports_unscored_idx on public.reports (created_at) where accuracy = 'unscored';
 
+-- The displayed wait is a TRUST-WEIGHTED aggregate of recent reports: the app
+-- joins each recent report to its reporter's profiles.trust_score and weights
+-- proven reporters more (see lib/waittime.js). This index keeps that join fast.
+create index if not exists reports_user_idx on public.reports (user_id);
+
 -- ── ban enforcement (defense in depth; client also checks) ──────────────────
 create or replace function public.block_banned_reports()
 returns trigger language plpgsql security definer set search_path = public as $$

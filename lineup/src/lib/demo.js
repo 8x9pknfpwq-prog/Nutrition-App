@@ -187,12 +187,14 @@ try {
 }
 
 // --- wait-time algorithm (mirrors server/utils/waittime.js) --------------
+const trustWeight = (trust) => Math.max(0.25, Math.min(3, 1 + (Number(trust) || 0) / 200));
+
 function computeWait(reports, now = Date.now()) {
   const weighted = [];
   for (const r of reports) {
     const ageMin = (now - new Date(r.createdAt).getTime()) / 60000;
     if (ageMin < 0 || ageMin > 90) continue;
-    weighted.push({ waitMin: r.waitMin, weight: ageMin < 30 ? 2 : 1 });
+    weighted.push({ waitMin: r.waitMin, weight: (ageMin < 30 ? 2 : 1) * trustWeight(r.trust) });
   }
   const reportCount = weighted.length;
   if (reportCount === 0) return { waitMin: null, reportCount: 0, confidence: 'low' };
@@ -214,7 +216,10 @@ function computeWait(reports, now = Date.now()) {
   return { waitMin, reportCount, confidence };
 }
 
-const reportsForBar = (barId) => db.reports.filter((r) => r.barId === barId);
+const reportsForBar = (barId) =>
+  db.reports
+    .filter((r) => r.barId === barId)
+    .map((r) => ({ ...r, trust: userById(r.userId)?.trustScore ?? 0 }));
 
 // Aggregate a bar's full history into a 7×24 { dow: { hour: { avgWait, n } } } map.
 function forecastHistogram(barId) {
