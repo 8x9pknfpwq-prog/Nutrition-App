@@ -11,7 +11,7 @@ export default function WaitBadge({ waitMin, solid = false, est = false, closed 
   if (closed) {
     return (
       <span
-        className={`wait-time inline-flex items-center justify-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-400 ${className}`}
+        className={`wait-time inline-flex items-center justify-center rounded-full bg-wait-red/10 px-2.5 py-1 text-xs font-bold text-wait-red ${className}`}
       >
         Closed
       </span>

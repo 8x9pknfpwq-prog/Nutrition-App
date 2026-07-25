@@ -153,7 +153,7 @@ export default function Legal({ doc }) {
         <NYCLinesLogo variant="light" height={28} />
       </div>
 
-      <h1 className="mt-6 font-serif text-[28px] font-bold tracking-tight text-ink">
+      <h1 className="mt-6 text-2xl font-extrabold text-ink">
         {isPrivacy ? 'Privacy Policy' : 'Terms of Service'}
       </h1>
       <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-400">

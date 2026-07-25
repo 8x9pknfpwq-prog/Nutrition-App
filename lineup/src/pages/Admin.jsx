@@ -100,7 +100,7 @@ export default function Admin() {
 
   return (
     <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-5">
-      <h1 className="font-serif text-[28px] font-bold tracking-tight text-ink">Pending approvals</h1>
+      <h1 className="text-2xl font-extrabold text-ink">Pending approvals</h1>
       <p className="mt-0.5 text-sm text-gray-500">
         {loading ? 'Loading…' : `${pending.length} suggestion${pending.length === 1 ? '' : 's'} to review`}
       </p>

@@ -38,17 +38,14 @@ body {
   background: var(--app-bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
-  /* Spectral (serif) is the primary typeface app-wide. The logo uses IBM Plex
-     Sans explicitly; numbers use IBM Plex Mono (below). */
-  font-family: 'Spectral', Georgia, ui-serif, serif;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Data / numbers (wait times, counts, timers) — Spectral with tabular figures
-   so columns still line up. */
+/* Data / numbers (wait times, counts, timers) use IBM Plex Mono. */
 .wait-time,
 .stat-number,
 .timer {
-  font-family: 'Spectral', Georgia, ui-serif, serif;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-feature-settings: 'tnum' 1;
 }
 

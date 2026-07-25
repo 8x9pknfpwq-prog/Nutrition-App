@@ -233,7 +233,7 @@ export default function Friends() {
   return (
     <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-5">
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-[28px] font-bold tracking-tight text-ink">Friends</h1>
+        <h1 className="text-2xl font-extrabold text-ink">Friends</h1>
         <button
           onClick={() => setShowAdd(true)}
           className="grid h-10 w-10 place-items-center rounded-full bg-ink text-white"
