@@ -13,7 +13,7 @@ function FriendRow({ u, onAdd, onBlock }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
       <Avatar initial={u.avatarInitial} seed={u.username} size={38} />
-      <span className="flex-1 truncate text-sm font-semibold text-ink">{u.username}</span>
+      <span className="flex-1 truncate font-serif text-[15px] font-semibold text-ink">{u.username}</span>
       {u.friendStatus === 'friends' ? (
         <span className="text-xs font-medium text-gray-400">Friends</span>
       ) : u.friendStatus === 'requested' ? (
@@ -251,7 +251,7 @@ export default function Friends() {
               <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
                 <Avatar initial={p.from.avatarInitial} seed={p.from.username} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{p.from.username}</p>
+                  <p className="truncate font-serif text-[15px] font-semibold text-ink">{p.from.username}</p>
                   <p className="text-xs text-gray-400">wants to be friends</p>
                 </div>
                 <button
@@ -291,7 +291,7 @@ export default function Friends() {
                 <Avatar initial={f.avatarInitial} seed={f.username} size={44} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-ink">{f.username}</p>
+                    <p className="truncate font-serif text-[15px] font-semibold text-ink">{f.username}</p>
                     <TrustBadge rating={f.accuracyRating} />
                   </div>
                   <p className="truncate text-xs text-gray-500">
