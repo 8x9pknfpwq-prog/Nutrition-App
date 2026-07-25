@@ -52,7 +52,7 @@ export default function Leaderboard() {
       <Link to="/profile" className="mb-2 -ml-1 inline-flex items-center gap-0.5 text-sm font-medium text-gray-500">
         <ChevronLeft size={18} /> Profile
       </Link>
-      <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-ink">Leaderboard</h1>
+      <h1 className="font-serif text-[30px] font-bold leading-tight tracking-tight text-ink">Leaderboard</h1>
       <p className="mt-1 text-[15px] text-gray-500">The most accurate reporters in the city.</p>
 
       <div className="mt-5 space-y-2">
@@ -93,9 +93,9 @@ export default function Leaderboard() {
               <RankChip rank={u.rank} />
               <Avatar initial={u.avatarInitial} seed={u.username} size={40} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-semibold text-ink">
+                <p className="truncate font-serif text-[17px] font-semibold text-ink">
                   {u.username}
-                  {u.isMe && <span className="ml-1 text-gray-400">· you</span>}
+                  {u.isMe && <span className="ml-1 font-sans text-sm text-gray-400">· you</span>}
                 </p>
                 <TrustBadge rating={u.accuracyRating} className="mt-0.5" />
               </div>
