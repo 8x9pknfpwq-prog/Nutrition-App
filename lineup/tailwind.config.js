@@ -23,7 +23,8 @@ export default {
         serif: ['Spectral', 'Georgia', 'ui-serif', 'serif'],
       },
       boxShadow: {
-        card: '0 2px 12px rgba(0,0,0,0.06)',
+        // Unified Apple-style depth: a soft drop shadow + a hairline ring.
+        card: '0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03)',
         sheet: '0 -8px 30px rgba(0,0,0,0.12)',
         pin: '0 4px 10px rgba(0,0,0,0.25)',
       },
