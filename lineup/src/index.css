@@ -43,11 +43,12 @@ body {
   font-family: 'Spectral', Georgia, ui-serif, serif;
 }
 
-/* Data / numbers (wait times, counts, timers) use IBM Plex Mono. */
+/* Data / numbers (wait times, counts, timers) — Spectral with tabular figures
+   so columns still line up. */
 .wait-time,
 .stat-number,
 .timer {
-  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'Spectral', Georgia, ui-serif, serif;
   font-feature-settings: 'tnum' 1;
 }
 
