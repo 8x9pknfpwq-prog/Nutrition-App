@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
+import Segmented from '../components/Segmented.jsx';
 
 const inputCls =
-  'w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink';
+  'w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-[15px] outline-none transition-shadow focus:border-ink focus:ring-2 focus:ring-ink/10';
 
 export default function Auth() {
   const { login, signup, requestPasswordReset } = useAuth();
@@ -105,18 +106,12 @@ export default function Auth() {
         ) : (
           <>
             {/* Tabs */}
-            <div className="mb-5 flex rounded-full bg-canvas p-1">
-              {['signup', 'login'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => switchTo(t)}
-                  className={`flex-1 rounded-full py-2 text-sm font-semibold capitalize transition-colors ${
-                    tab === t ? 'bg-ink text-white' : 'text-gray-500'
-                  }`}
-                >
-                  {t === 'signup' ? 'Sign Up' : 'Log In'}
-                </button>
-              ))}
+            <div className="mb-5">
+              <Segmented
+                value={tab}
+                onChange={switchTo}
+                options={[{ v: 'signup', label: 'Sign Up' }, { v: 'login', label: 'Log In' }]}
+              />
             </div>
 
             <form onSubmit={submit} className="space-y-3">
