@@ -76,7 +76,7 @@ export async function getSupabaseUser() {
   if (!s) return null;
   const { data: prof } = await supabase
     .from('profiles')
-    .select('username, avatar_initial, is_admin, first_name, last_name, phone')
+    .select('username, avatar_initial, is_admin, first_name, last_name, phone, trust_score, accuracy_rating, scored_reports, submit_banned_until')
     .eq('id', s.user.id)
     .single();
   const email = s.user.email || '';
@@ -89,6 +89,10 @@ export async function getSupabaseUser() {
     lastName: prof?.last_name || '',
     phone: prof?.phone || '',
     isAdmin: prof?.is_admin === true,
+    trustScore: prof?.trust_score ?? 0,
+    accuracyRating: prof?.accuracy_rating ?? null,
+    scoredReports: prof?.scored_reports ?? 0,
+    submitBannedUntil: prof?.submit_banned_until ?? null,
   };
 }
 
@@ -298,8 +302,50 @@ export const supabaseApi = {
     const id = await myId();
     if (!id) throw apiErr('Not authenticated', 401);
     const { error } = await supabase.from('reports').insert({ bar_id: barId, user_id: id, wait_min: Math.round(Number(waitMin)) });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error.message || '').includes('submit_banned')) {
+        throw apiErr('Your reporting is paused for inaccurate submissions. Check your Profile for when it lifts.', 403);
+      }
+      throw new Error(error.message);
+    }
+    // Opportunistically score settled reports (no-op if none are due).
+    supabase.rpc('score_reports').then(() => {}, () => {});
     return { ok: true };
+  },
+
+  // Trigger the scoring pass (best-effort; called on app load too).
+  async runScoring() {
+    try { await supabase.rpc('score_reports'); } catch { /* ignore */ }
+    return { ok: true };
+  },
+
+  // Leaderboard. scope: 'friends' | 'nyc'; timeframe: 'week' | 'all'.
+  async leaderboard({ scope = 'nyc', timeframe = 'all' } = {}) {
+    const id = await myId();
+    const { data, error } = await supabase.rpc('leaderboard', { p_timeframe: timeframe, lim: 100 });
+    if (error) throw new Error(error.message);
+    let rows = (data || []).map((u) => ({
+      id: u.id,
+      username: u.username,
+      avatarInitial: u.avatar_initial,
+      trustScore: u.trust_score,
+      accuracyRating: u.accuracy_rating,
+      scoredReports: u.scored_reports,
+      points: u.points,
+      isMe: u.id === id,
+    }));
+    if (scope === 'friends' && id) {
+      const { data: fs } = await supabase
+        .from('friendships')
+        .select('from_user, to_user')
+        .eq('status', 'accepted')
+        .or(`from_user.eq.${id},to_user.eq.${id}`);
+      const friendIds = new Set((fs || []).map((f) => (f.from_user === id ? f.to_user : f.from_user)));
+      friendIds.add(id);
+      rows = rows.filter((u) => friendIds.has(u.id));
+    }
+    rows = rows.map((u, i) => ({ ...u, rank: i + 1 }));
+    return { rows };
   },
 
   // ── friends ───────────────────────────────────────────────────────────────
@@ -317,7 +363,7 @@ export const supabaseApi = {
       .filter((x) => !blocked.has(x));
     if (!ids.length) return { friends: [] };
     const [{ data: profs }, { data: notes }] = await Promise.all([
-      supabase.from('profiles').select('id, username, avatar_initial').in('id', ids),
+      supabase.from('profiles').select('id, username, avatar_initial, accuracy_rating').in('id', ids),
       supabase
         .from('friend_notifications')
         .select('user_id, created_at, bars:bar_id(id, name, latitude, longitude)')
@@ -333,6 +379,7 @@ export const supabaseApi = {
           id: u.id,
           username: u.username,
           avatarInitial: u.avatar_initial,
+          accuracyRating: u.accuracy_rating ?? null,
           lastBar: n?.bars ? { id: n.bars.id, name: n.bars.name, latitude: n.bars.latitude, longitude: n.bars.longitude } : null,
           lastCheckinAt: n ? n.created_at : null,
         };

@@ -123,7 +123,7 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
       if (share && friends.length > 0) {
         await api.notifyFriends(bar.id);
       }
-      showToast({ title: 'Checked in', body: `${bar.name} · ${value >= MAX ? '90+' : value} min line` });
+      showToast({ title: 'Checked in', body: `${bar.name} · ${value >= MAX ? '90+' : value} min line — you’ll earn points if nearby reports agree` });
       onSubmitted?.();
       onClose();
     } catch (e) {

@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { timeAgo } from '../lib/wait.js';
 import { contactsAvailable, readContactPhones } from '../lib/contacts.js';
 import { shareInvite } from '../lib/invite.js';
+import TrustBadge from '../components/TrustBadge.jsx';
 
 function FriendRow({ u, onAdd, onBlock }) {
   return (
@@ -289,7 +290,10 @@ export default function Friends() {
               <div key={f.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
                 <Avatar initial={f.avatarInitial} seed={f.username} size={44} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{f.username}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-ink">{f.username}</p>
+                    <TrustBadge rating={f.accuracyRating} />
+                  </div>
                   <p className="truncate text-xs text-gray-500">
                     {f.lastBar
                       ? `at ${f.lastBar.name} · ${timeAgo(f.lastCheckinAt)}`

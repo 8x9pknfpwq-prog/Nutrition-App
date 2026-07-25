@@ -12,6 +12,7 @@ import Friends from './pages/Friends.jsx';
 import Saved from './pages/Saved.jsx';
 import Profile from './pages/Profile.jsx';
 import Admin from './pages/Admin.jsx';
+import Leaderboard from './pages/Leaderboard.jsx';
 import Legal from './pages/Legal.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 
@@ -45,6 +46,7 @@ function AuthedApp() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/saved" element={<Saved />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

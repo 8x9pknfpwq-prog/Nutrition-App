@@ -77,6 +77,11 @@ const realApi = {
   unblockUser: (userId) => request('/moderation/unblock', { method: 'POST', body: { userId } }),
   listReports: () => request('/moderation/reports'),
   resolveReport: (id) => request(`/moderation/reports/${id}/resolve`, { method: 'POST' }),
+
+  // trust / leaderboard
+  runScoring: () => request('/trust/score', { method: 'POST' }),
+  leaderboard: (opts) =>
+    request(`/trust/leaderboard?scope=${opts?.scope || 'nyc'}&timeframe=${opts?.timeframe || 'all'}`),
 };
 
 // Supabase (real shared backend) wins when configured; else demo; else server.

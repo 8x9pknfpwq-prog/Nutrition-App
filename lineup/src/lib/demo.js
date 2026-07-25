@@ -87,10 +87,10 @@ const FROYO = [
 ];
 
 const USERS = [
-  { id: 'u_maya', email: 'maya@lineup.app', username: 'maya', password: 'password123', avatarInitial: 'M' },
-  { id: 'u_leo', email: 'leo@lineup.app', username: 'leo', password: 'password123', avatarInitial: 'L' },
-  { id: 'u_sara', email: 'sara@lineup.app', username: 'sara', password: 'password123', avatarInitial: 'S' },
-  { id: 'u_devin', email: 'devin@lineup.app', username: 'devin', password: 'password123', avatarInitial: 'D' },
+  { id: 'u_maya', email: 'maya@lineup.app', username: 'maya', password: 'password123', avatarInitial: 'M', trustScore: 340, accuracyRating: 4.8, scoredReports: 128 },
+  { id: 'u_leo', email: 'leo@lineup.app', username: 'leo', password: 'password123', avatarInitial: 'L', trustScore: 210, accuracyRating: 4.5, scoredReports: 74 },
+  { id: 'u_sara', email: 'sara@lineup.app', username: 'sara', password: 'password123', avatarInitial: 'S', trustScore: 155, accuracyRating: 4.2, scoredReports: 61 },
+  { id: 'u_devin', email: 'devin@lineup.app', username: 'devin', password: 'password123', avatarInitial: 'D', trustScore: 90, accuracyRating: 3.9, scoredReports: 33 },
 ];
 
 // [barId, [[waitMin, minutesAgo], ...]]
@@ -250,7 +250,7 @@ function forecastNowByBar(dow, hour) {
   return out;
 }
 const userById = (id) => db.users.find((u) => u.id === id);
-const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, firstName: u.firstName || '', lastName: u.lastName || '', phone: u.phone || '', createdAt: u.createdAt || new Date(), isAdmin: true });
+const publicUser = (u) => ({ id: u.id, email: u.email, username: u.username, avatarInitial: u.avatarInitial, firstName: u.firstName || '', lastName: u.lastName || '', phone: u.phone || '', createdAt: u.createdAt || new Date(), isAdmin: true, trustScore: u.trustScore ?? 0, accuracyRating: u.accuracyRating ?? null, scoredReports: u.scoredReports ?? 0, submitBannedUntil: null });
 
 function acceptedFriendIds(userId) {
   return db.friendships
@@ -474,6 +474,7 @@ export const demoApi = {
       const bar = last ? db.bars.find((b) => b.id === last.barId) : null;
       return {
         id: u.id, username: u.username, avatarInitial: u.avatarInitial,
+        accuracyRating: u.accuracyRating ?? null,
         lastBar: bar ? { id: bar.id, name: bar.name, latitude: bar.latitude, longitude: bar.longitude } : null,
         lastCheckinAt: last ? last.createdAt : null,
       };
@@ -540,6 +541,31 @@ export const demoApi = {
     const r = (db.reportsLog || []).find((x) => x.id === id);
     if (r) r.status = 'resolved';
     return { ok: true };
+  },
+  async runScoring() {
+    return { ok: true };
+  },
+  async leaderboard({ scope = 'nyc', timeframe = 'all' } = {}) {
+    let pool = USERS.slice();
+    if (scope === 'friends' && sessionUserId) {
+      const fam = new Set(acceptedFriendIds(sessionUserId));
+      fam.add(sessionUserId);
+      pool = pool.filter((u) => fam.has(u.id));
+    }
+    const rows = pool
+      .map((u) => ({
+        id: u.id,
+        username: u.username,
+        avatarInitial: u.avatarInitial,
+        trustScore: u.trustScore ?? 0,
+        accuracyRating: u.accuracyRating ?? null,
+        scoredReports: u.scoredReports ?? 0,
+        points: timeframe === 'week' ? Math.round((u.trustScore ?? 0) * 0.3) : (u.trustScore ?? 0),
+        isMe: u.id === sessionUserId,
+      }))
+      .sort((a, b) => b.points - a.points)
+      .map((u, i) => ({ ...u, rank: i + 1 }));
+    return { rows };
   },
   async notifyFriends(barId) {
     if (!sessionUserId) throw apiError('Not authenticated', 401);
