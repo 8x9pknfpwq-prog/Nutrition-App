@@ -1,16 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Trophy } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import Avatar from '../components/Avatar.jsx';
 import TrustBadge from '../components/TrustBadge.jsx';
+import Segmented from '../components/Segmented.jsx';
 import { api } from '../lib/api.js';
 
-const rankColor = (r) =>
-  r === 1 ? 'text-wait-amber' : r === 2 ? 'text-gray-400' : r === 3 ? 'text-[#b08046]' : 'text-gray-400';
+const MEDAL = {
+  1: 'linear-gradient(160deg,#F6C560,#E0A02A)',
+  2: 'linear-gradient(160deg,#D7DBE0,#AEB4BD)',
+  3: 'linear-gradient(160deg,#D19A63,#B0763C)',
+};
+
+function RankChip({ rank }) {
+  if (rank <= 3) {
+    return (
+      <span
+        className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-extrabold text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+        style={{ background: MEDAL[rank] }}
+      >
+        {rank}
+      </span>
+    );
+  }
+  return <span className="grid h-7 w-7 place-items-center text-sm font-bold text-gray-400 tabular-nums">{rank}</span>;
+}
 
 export default function Leaderboard() {
-  const [scope, setScope] = useState('friends'); // 'friends' | 'nyc'
-  const [timeframe, setTimeframe] = useState('week'); // 'week' | 'all'
+  const [scope, setScope] = useState('friends');
+  const [timeframe, setTimeframe] = useState('week');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,63 +47,62 @@ export default function Leaderboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const Toggle = ({ value, set, options }) => (
-    <div className="flex rounded-full bg-white p-1 shadow-card">
-      {options.map((o) => (
-        <button
-          key={o.v}
-          onClick={() => set(o.v)}
-          className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors ${
-            value === o.v ? 'bg-ink text-white' : 'text-gray-500'
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-
   return (
-    <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-8">
-      <div className="flex items-center gap-2">
-        <Link to="/profile" className="text-gray-500"><ArrowLeft size={20} /></Link>
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold text-ink">
-          <Trophy size={22} className="text-wait-amber" /> Leaderboard
-        </h1>
-      </div>
-      <p className="mt-1 text-sm text-gray-500">Most accurate reporters earn the top spots.</p>
+    <div className="mx-auto h-full max-w-md overflow-y-auto overscroll-contain bg-canvas px-4 pb-24 pt-[calc(env(safe-area-inset-top)+20px)]">
+      <Link to="/profile" className="mb-2 -ml-1 inline-flex items-center gap-0.5 text-sm font-medium text-gray-500">
+        <ChevronLeft size={18} /> Profile
+      </Link>
+      <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-ink">Leaderboard</h1>
+      <p className="mt-1 text-[15px] text-gray-500">The most accurate reporters in the city.</p>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <Toggle value={scope} set={setScope} options={[{ v: 'friends', label: 'Friends' }, { v: 'nyc', label: 'NYC' }]} />
-        <Toggle value={timeframe} set={setTimeframe} options={[{ v: 'week', label: 'This week' }, { v: 'all', label: 'All-time' }]} />
+      <div className="mt-5 space-y-2">
+        <Segmented
+          value={scope}
+          onChange={setScope}
+          options={[{ v: 'friends', label: 'Friends' }, { v: 'nyc', label: 'NYC' }]}
+        />
+        <Segmented
+          value={timeframe}
+          onChange={setTimeframe}
+          options={[{ v: 'week', label: 'This week' }, { v: 'all', label: 'All-time' }]}
+        />
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-5 space-y-2.5">
         {loading ? (
-          <p className="py-12 text-center text-sm text-gray-400">Loading…</p>
+          <p className="py-16 text-center text-sm text-gray-400">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="py-12 text-center text-sm text-gray-400">
-            {scope === 'friends'
-              ? 'No ranked friends yet — add friends and start checking in.'
-              : 'No one’s ranked yet. Be the first — check in accurately to earn points.'}
-          </p>
+          <div className="rounded-2xl bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.03]">
+            <p className="text-sm font-semibold text-ink">No rankings yet</p>
+            <p className="mx-auto mt-1 max-w-[16rem] text-sm text-gray-500">
+              {scope === 'friends'
+                ? 'Add friends and check in accurately to climb the board together.'
+                : 'Be the first — check in accurately to start earning points.'}
+            </p>
+          </div>
         ) : (
           rows.map((u) => (
             <div
               key={u.id}
-              className={`flex items-center gap-3 rounded-2xl p-3 shadow-card ${u.isMe ? 'bg-ink/5 ring-1 ring-ink/15' : 'bg-white'}`}
+              className={`flex items-center gap-3 rounded-2xl px-3.5 py-3 ${
+                u.isMe
+                  ? 'bg-ink/[0.04] ring-1 ring-ink/10'
+                  : 'bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.03]'
+              }`}
             >
-              <span className={`w-6 text-center text-sm font-extrabold ${rankColor(u.rank)}`}>{u.rank}</span>
-              <Avatar initial={u.avatarInitial} seed={u.username} size={38} />
+              <RankChip rank={u.rank} />
+              <Avatar initial={u.avatarInitial} seed={u.username} size={40} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">
-                  {u.username}{u.isMe ? ' (you)' : ''}
+                <p className="truncate text-[15px] font-semibold text-ink">
+                  {u.username}
+                  {u.isMe && <span className="ml-1 text-gray-400">· you</span>}
                 </p>
-                <TrustBadge rating={u.accuracyRating} />
+                <TrustBadge rating={u.accuracyRating} className="mt-0.5" />
               </div>
-              <span className="stat-number text-sm font-bold text-ink">
-                {u.points.toLocaleString()}<span className="ml-0.5 text-xs font-medium text-gray-400">pts</span>
-              </span>
+              <div className="text-right">
+                <p className="stat-number text-[15px] font-bold leading-none text-ink">{u.points.toLocaleString()}</p>
+                <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-400">pts</p>
+              </div>
             </div>
           ))
         )}
