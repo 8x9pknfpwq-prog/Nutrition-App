@@ -174,7 +174,11 @@ export const supabaseApi = {
     const since = since90();
     const { dow, hour } = nycParts();
     const [barsRes, repRes, noteRes, fcRes] = await Promise.all([
-      supabase.from('bars').select('*'),
+      // Only approved venues appear on the map/list. Admins see unapproved rows
+      // via RLS, so filter explicitly here — otherwise a just-suggested spot
+      // shows on an admin's map immediately and looks like it skipped review.
+      // Pending suggestions live only in the Admin tab's queue (pendingBars()).
+      supabase.from('bars').select('*').eq('approved', true),
       supabase.from('reports').select('bar_id, wait_min, created_at, profiles:user_id(trust_score)').gte('created_at', since),
       supabase
         .from('friend_notifications')

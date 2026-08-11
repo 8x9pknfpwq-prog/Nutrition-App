@@ -455,8 +455,9 @@ export const demoApi = {
     };
     db.bars.push(bar);
     persistUserBars();
+    // Do NOT broadcast bar_added here — the suggestion is pending. It goes live
+    // (and is broadcast to open maps) only when an admin approves it.
     const payload = { ...bar, waitMin: null, reportCount: 0, confidence: 'low', checkins: [] };
-    demoSocket._dispatch('bar_added', payload);
     return { bar: payload };
   },
   async report({ barId, waitMin }) {
@@ -644,7 +645,11 @@ export const demoApi = {
   },
   async approveBar(id) {
     const b = db.bars.find((x) => x.id === id);
-    if (b) b.approved = true;
+    if (b) {
+      b.approved = true;
+      // Now it's live — broadcast so any open map picks it up in real time.
+      demoSocket._dispatch('bar_added', { ...b, waitMin: null, reportCount: 0, confidence: 'low', checkins: [] });
+    }
     persistUserBars();
     return { ok: true };
   },
