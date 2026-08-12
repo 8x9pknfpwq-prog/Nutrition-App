@@ -8,6 +8,8 @@ import { timeAgo } from '../lib/wait.js';
 import { contactsAvailable, readContactPhones } from '../lib/contacts.js';
 import { shareInvite } from '../lib/invite.js';
 import TrustBadge from '../components/TrustBadge.jsx';
+import SignInWall from '../components/SignInWall.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 function FriendRow({ u, onAdd, onBlock }) {
   return (
@@ -195,6 +197,7 @@ function AddFriendModal({ onClose, onChanged }) {
 
 export default function Friends() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const location = useLocation();
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
@@ -202,12 +205,17 @@ export default function Friends() {
   const [showAdd, setShowAdd] = useState(() => !!location.state?.addFriends);
 
   const load = useCallback(async () => {
+    if (!user) return;
     const [f, p] = await Promise.all([api.friends(), api.pending()]);
     setFriends(f.friends);
     setPending(p.pending);
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  if (!user) {
+    return <SignInWall title="See where friends are out" body="Sign up to add friends and see their check-ins on the map." />;
+  }
 
   async function accept(id, username) {
     try {

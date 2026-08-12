@@ -7,7 +7,7 @@ const inputCls =
   'w-full rounded-xl border border-black/10 bg-canvas px-4 py-3 text-sm outline-none focus:border-ink';
 
 export default function Auth() {
-  const { login, signup, requestPasswordReset } = useAuth();
+  const { login, signup, requestPasswordReset, continueAsGuest } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
   const [forgot, setForgot] = useState(false);
   const [sent, setSent] = useState(false);
@@ -211,7 +211,14 @@ export default function Auth() {
         )}
       </div>
 
-      <p className="mt-6 text-center text-xs text-gray-400">
+      <button
+        onClick={continueAsGuest}
+        className="mt-5 text-sm font-semibold text-gray-500 underline-offset-4 hover:underline"
+      >
+        Browse the map without an account →
+      </button>
+
+      <p className="mt-5 text-center text-xs text-gray-400">
         <Link to="/privacy" className="font-medium text-gray-500">Privacy</Link>
         {' · '}
         <Link to="/terms" className="font-medium text-gray-500">Terms</Link>
