@@ -15,6 +15,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState(false);
+  // Guest = browsing the public map without an account (Guideline 5.1.1).
+  const [guest, setGuest] = useState(false);
+  const continueAsGuest = useCallback(() => setGuest(true), []);
+  const exitGuest = useCallback(() => setGuest(false), []);
 
   // Restore session from the httpOnly cookie on first load.
   useEffect(() => {
@@ -37,12 +41,14 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const d = await api.login({ email, password });
+    setGuest(false);
     setUser(d.user);
     return d.user;
   }, []);
 
   const signup = useCallback(async (fields) => {
     const d = await api.signup(fields);
+    setGuest(false);
     setUser(d.user);
     return d.user;
   }, []);
@@ -82,6 +88,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user, loading, recovering,
+        guest, continueAsGuest, exitGuest,
         login, signup, logout, deleteAccount,
         requestPasswordReset, updatePassword,
       }}

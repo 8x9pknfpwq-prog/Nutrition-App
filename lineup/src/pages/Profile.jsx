@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LogOut, ShieldCheck, ChevronRight, Trash2, Trophy } from 'lucide-react';
 import Avatar from '../components/Avatar.jsx';
 import TrustBadge from '../components/TrustBadge.jsx';
+import SignInWall from '../components/SignInWall.jsx';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -49,7 +50,9 @@ export default function Profile() {
     })();
   }, []);
 
-  if (!user) return null;
+  if (!user) {
+    return <SignInWall title="Your profile" body="Sign up to check in, earn points, and climb the leaderboard." />;
+  }
 
   const banned = user.submitBannedUntil && new Date(user.submitBannedUntil) > new Date();
 

@@ -57,7 +57,7 @@ function AuthedApp() {
 }
 
 function Gate() {
-  const { user, loading, recovering } = useAuth();
+  const { user, guest, loading, recovering } = useAuth();
   // A password-recovery link takes priority over everything else.
   if (recovering) return <ResetPassword />;
   if (loading) {
@@ -67,7 +67,9 @@ function Gate() {
       </div>
     );
   }
-  return user ? <AuthedApp /> : <Auth />;
+  // Signed-in users and guests both get the app; guests hit sign-in walls on
+  // account-based actions. Everyone else sees the auth screen.
+  return user || guest ? <AuthedApp /> : <Auth />;
 }
 
 export default function App() {

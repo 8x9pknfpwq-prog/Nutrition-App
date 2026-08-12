@@ -4,6 +4,7 @@ import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
 import VenuePhoto from './VenuePhoto.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useRequireAuth } from '../hooks/useRequireAuth.js';
 import { waitColor, statusText } from '../lib/wait.js';
 import {
   displayWait, busynessLabel, bestTimeHour, formatHour,
@@ -104,6 +105,7 @@ function Dial({ value }) {
 
 export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   const { showToast } = useToast();
+  const requireAuth = useRequireAuth();
   const [value, setValue] = useState(bar.waitMin ?? displayWait(bar).waitMin ?? 15);
   const [share, setShare] = useState(true);
   const [friends, setFriends] = useState([]);
@@ -117,6 +119,7 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   const statusColor = useMemo(() => waitColor(value), [value]);
 
   async function submit() {
+    if (!requireAuth('check in')) { onClose(); return; }
     setSubmitting(true);
     try {
       await api.report({ barId: bar.id, waitMin: value });
@@ -134,6 +137,7 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   }
 
   async function reportPlace() {
+    if (!requireAuth('report a place')) { onClose(); return; }
     if (!window.confirm(`Report ${bar.name} as inappropriate or incorrect? Our team reviews reports within 24 hours.`)) return;
     try {
       await api.reportContent('venue', bar.id);

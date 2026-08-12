@@ -15,6 +15,7 @@ import { displayWait, isOpen } from '../lib/busyness.js';
 import { getCurrentPosition } from '../lib/geo.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useRequireAuth } from '../hooks/useRequireAuth.js';
 
 // Great-circle distance in miles between the user and a bar.
 function milesBetween(a, b) {
@@ -32,6 +33,7 @@ export default function MapDashboard() {
   const socket = useSocket();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const requireAuth = useRequireAuth();
   const [bars, setBars] = useState([]);
   const [friends, setFriends] = useState([]);
   const [hideFriendsNudge, setHideFriendsNudge] = useState(
@@ -149,7 +151,7 @@ export default function MapDashboard() {
             <LocateFixed size={18} />
           </button>
           <button
-            onClick={() => setAdding(true)}
+            onClick={() => requireAuth('suggest a spot') && setAdding(true)}
             className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform ${
               isFroyo ? 'bg-froyo' : 'bg-ink'
             }`}
