@@ -511,7 +511,7 @@ export const supabaseApi = {
     return { ok: true };
   },
 
-  // ── users ─────────────────────────────────────────────────────────────────
+  // ── users ──────────────────────────────────────────────────────────────────
   async searchUsers(q) {
     const id = await myId();
     const term = (q || '').trim();
@@ -604,7 +604,7 @@ export const supabaseApi = {
     return { checkIns: count || 0, friends: (fs || []).length };
   },
 
-  // ── admin ─────────────────────────────────────────────────────────────────
+  // ── admin ──────────────────────────────────────────────────────────────────
   async pendingBars() {
     const { data, error } = await supabase
       .from('bars')
