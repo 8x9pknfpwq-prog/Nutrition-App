@@ -1,0 +1,63 @@
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+import { useAuth } from './AuthContext.jsx';
+import { DEMO, demoSocket } from '../lib/demo.js';
+import { IS_SUPABASE } from '../lib/mode.js';
+import { supabaseRealtime } from '../lib/supabaseRealtime.js';
+
+const SocketContext = createContext(null);
+
+export function SocketProvider({ children }) {
+  const { user } = useAuth();
+  const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null);
+
+  // Connect once we have an authenticated user (cookie is sent automatically).
+  useEffect(() => {
+    if (!user) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      }
+      return;
+    }
+
+    // Supabase mode: live updates via Supabase Realtime (wraps the same socket
+    // interface), so wait/check-in changes push to everyone.
+    if (IS_SUPABASE) {
+      socketRef.current = supabaseRealtime;
+      setSocket(supabaseRealtime);
+      return () => {
+        supabaseRealtime.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      };
+    }
+
+    // Demo builds use the in-browser simulated socket.
+    if (DEMO) {
+      socketRef.current = demoSocket;
+      setSocket(demoSocket);
+      return () => {
+        demoSocket.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      };
+    }
+
+    const s = io('/', { withCredentials: true });
+    socketRef.current = s;
+    setSocket(s);
+
+    return () => {
+      s.disconnect();
+      socketRef.current = null;
+      setSocket(null);
+    };
+  }, [user]);
+
+  return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
+}
+
+export const useSocket = () => useContext(SocketContext);

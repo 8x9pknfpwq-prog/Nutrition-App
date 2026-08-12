@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+prisma/dev.db
+prisma/dev.db-journal
+
+# Capacitor / iOS (the ios/ project is generated on a Mac via `npx cap add ios`).
+# Commit the Xcode project but not build output, Pods, or synced web assets.
+ios/App/Pods/
+ios/App/App/public/
+ios/App/build/
+ios/DerivedData/
+DerivedData/
+**/xcuserdata/
+*.xcuserstate

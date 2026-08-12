@@ -1,0 +1,267 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
+import MapView from '../components/MapView.jsx';
+import BottomSheet from '../components/BottomSheet.jsx';
+import BarCard from '../components/BarCard.jsx';
+import FilterPills from '../components/FilterPills.jsx';
+import CheckInSheet from '../components/CheckInSheet.jsx';
+import AddPlaceSheet from '../components/AddPlaceSheet.jsx';
+import NYCLinesLogo from '../components/NYCLinesLogo.jsx';
+import VenueToggle from '../components/VenueToggle.jsx';
+import { Plus, Search, X, LocateFixed } from 'lucide-react';
+import { api } from '../lib/api.js';
+import { displayWait, isOpen } from '../lib/busyness.js';
+import { getCurrentPosition } from '../lib/geo.js';
+import { useSocket } from '../context/SocketContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
+
+// Great-circle distance in miles between the user and a bar.
+function milesBetween(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 10) / 10;
+}
+
+export default function MapDashboard() {
+  const socket = useSocket();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [bars, setBars] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const [hideFriendsNudge, setHideFriendsNudge] = useState(
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('nyc_hide_friends_nudge') === '1'
+  );
+  const [filters, setFilters] = useState([]);
+  const [mode, setMode] = useState('bar'); // 'bar' | 'froyo'
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Center the map on the user. manual=true surfaces errors (button press);
+  // the silent attempt on load won't nag if permission isn't granted.
+  const locate = useCallback(
+    async (manual = false) => {
+      try {
+        const loc = await getCurrentPosition();
+        setUserLocation(loc);
+      } catch {
+        if (manual)
+          showToast({ title: 'Location is off', body: 'Allow location access to center the map on you.' });
+      }
+    },
+    [showToast]
+  );
+
+  // Try once on load (silent if the user hasn't granted permission yet).
+  useEffect(() => { locate(false); }, [locate]);
+
+  const load = useCallback(async () => {
+    const [b, f] = await Promise.all([api.bars(), api.friends().catch(() => ({ friends: [] }))]);
+    setBars(b.bars);
+    setFriends(f.friends || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Join the live map room and apply wait_updated events in place.
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit('join_map');
+    const onWait = ({ barId, waitMin, reportCount, confidence }) => {
+      setBars((prev) =>
+        prev.map((b) =>
+          b.id === barId
+            ? { ...b, waitMin, reportCount: reportCount ?? b.reportCount, confidence: confidence ?? b.confidence }
+            : b
+        )
+      );
+    };
+    const onBarAdded = (bar) => {
+      setBars((prev) => (prev.some((b) => b.id === bar.id) ? prev : [...prev, bar]));
+    };
+    socket.on('wait_updated', onWait);
+    socket.on('bar_added', onBarAdded);
+    return () => {
+      socket.emit('leave_map');
+      socket.off('wait_updated', onWait);
+      socket.off('bar_added', onBarAdded);
+    };
+  }, [socket]);
+
+  const toggleFilter = (key) =>
+    setFilters((f) => (f.includes(key) ? f.filter((x) => x !== key) : [...f, key]));
+
+  // Only the current mode's venues appear on the map.
+  const modeBars = useMemo(
+    () => bars.filter((b) => (b.venueType || 'bar') === mode),
+    [bars, mode]
+  );
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = modeBars.filter((b) => {
+      if (q && !`${b.name} ${b.address}`.toLowerCase().includes(q)) return false;
+      const w = displayWait(b);
+      if (filters.includes('open') && w.closed) return false;
+      if (filters.includes('under20') && !(w.waitMin != null && w.waitMin < 20)) return false;
+      if (filters.includes('friends') && !(b.checkins && b.checkins.length > 0)) return false;
+      return true;
+    });
+    // Once we know where the user is, show distance from them and sort nearest first.
+    if (userLocation) {
+      return list
+        .map((b) => ({ ...b, distance: milesBetween(userLocation, b) }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+    return list;
+  }, [modeBars, filters, query, userLocation]);
+
+  const isFroyo = mode === 'froyo';
+  const nounPlural = isFroyo ? 'froyo spots' : 'spots nearby';
+
+  return (
+    <div className="relative h-screen w-full overflow-hidden bg-canvas">
+      {/* Map */}
+      <div className="absolute inset-0">
+        <MapView bars={modeBars} friends={friends} onSelectBar={setSelected} userLocation={userLocation} />
+      </div>
+
+      {/* Brand header — left-aligned wordmark over the map */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+        <div className="pointer-events-auto rounded-2xl bg-canvas/85 px-3 py-1.5 shadow-card backdrop-blur">
+          <NYCLinesLogo variant="light" height={32} />
+        </div>
+        <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            onClick={() => locate(true)}
+            aria-label="Center on my location"
+            className="grid h-10 w-10 place-items-center rounded-full bg-canvas/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+          >
+            <LocateFixed size={18} />
+          </button>
+          <button
+            onClick={() => setAdding(true)}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold text-white shadow-card active:scale-95 transition-transform ${
+              isFroyo ? 'bg-froyo' : 'bg-ink'
+            }`}
+          >
+            <Plus size={18} /> Suggest
+          </button>
+        </div>
+      </header>
+
+      {/* Venue mode switcher */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center pt-[calc(env(safe-area-inset-top)+60px)]">
+        <VenueToggle mode={mode} onChange={setMode} />
+      </div>
+
+      {/* Bottom sheet */}
+      <BottomSheet
+        peekHeight={340}
+        header={
+          <div className="pb-1">
+            <h1 className="text-xl font-bold text-ink">
+              <span className="stat-number" style={isFroyo ? { color: '#E84A8A' } : undefined}>
+                {visible.length}
+              </span>{' '}
+              {query.trim() ? `result${visible.length === 1 ? '' : 's'}` : nounPlural}
+            </h1>
+            <p className="truncate text-sm text-gray-500">
+              {query.trim()
+                ? `for “${query.trim()}”`
+                : userLocation
+                ? 'Nearest to you'
+                : 'East Village · Lower East Side'}
+            </p>
+          </div>
+        }
+      >
+        {/* Search */}
+        <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+          <Search size={16} className="shrink-0 text-gray-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={isFroyo ? 'Search froyo spots by name or address' : 'Search bars by name or address'}
+            className="flex-1 bg-transparent py-2.5 text-sm outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="shrink-0 text-gray-400" aria-label="Clear search">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        <div className="mt-3">
+          <FilterPills active={filters} onToggle={toggleFilter} />
+        </div>
+
+        {/* Optional, dismissible nudge — value-first, never a blocker. */}
+        {friends.length === 0 && !hideFriendsNudge && (
+          <button
+            onClick={() => navigate('/friends', { state: { addFriends: true } })}
+            className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-left text-white"
+          >
+            <Users size={20} className="shrink-0" />
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">See where your friends are out tonight</span>
+              <span className="block text-xs text-white/70">Find friends already on NYC Lines</span>
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Dismiss"
+              onClick={(e) => {
+                e.stopPropagation();
+                setHideFriendsNudge(true);
+                try { localStorage.setItem('nyc_hide_friends_nudge', '1'); } catch { /* ignore */ }
+              }}
+              className="shrink-0 rounded-full p-1 text-white/60 hover:text-white"
+            >
+              <X size={16} />
+            </span>
+          </button>
+        )}
+
+        <div className="no-scrollbar mt-3 flex-1 space-y-2.5 overflow-y-auto pb-28">
+          {loading ? (
+            <p className="py-10 text-center text-sm text-gray-400">Loading bars…</p>
+          ) : visible.length === 0 ? (
+            <p className="py-10 text-center text-sm text-gray-400">
+              {query.trim()
+                ? `No ${isFroyo ? 'froyo spots' : 'bars'} found for “${query.trim()}”.`
+                : isFroyo
+                ? 'No froyo spots yet.'
+                : 'No bars match your filters.'}
+            </p>
+          ) : (
+            visible.map((bar) => (
+              <BarCard key={bar.id} bar={bar} onClick={() => setSelected(bar)} />
+            ))
+          )}
+        </div>
+      </BottomSheet>
+
+      {/* Check-in sheet */}
+      {selected && (
+        <CheckInSheet
+          bar={selected}
+          onClose={() => setSelected(null)}
+          onSubmitted={load}
+        />
+      )}
+
+      {/* Add-a-place sheet */}
+      {adding && <AddPlaceSheet venueType={mode} onClose={() => setAdding(false)} onAdded={load} />}
+    </div>
+  );
+}

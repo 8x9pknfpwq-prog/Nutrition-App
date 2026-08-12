@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#F5F2EC" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="NYC Lines" />
+
+    <title>NYC Lines — Real-time NYC bar wait times</title>
+    <meta
+      name="description"
+      content="See how long the line is before you go. NYC Lines shows live, crowd-sourced bar wait times across the city — plus a busyness forecast for the best time to go."
+    />
+
+    <!-- Open Graph / social share -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NYC Lines" />
+    <meta property="og:url" content="%BASE_URL%" />
+    <meta property="og:title" content="NYC Lines — Real-time NYC bar wait times" />
+    <meta
+      property="og:description"
+      content="Live, crowd-sourced bar wait times across NYC, plus a busyness forecast for the best time to go."
+    />
+    <meta property="og:image" content="%BASE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NYC Lines — Real-time NYC bar wait times" />
+    <meta
+      name="twitter:description"
+      content="Live, crowd-sourced bar wait times across NYC, plus a busyness forecast for the best time to go."
+    />
+    <meta name="twitter:image" content="%BASE_URL%og.png" />
+
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

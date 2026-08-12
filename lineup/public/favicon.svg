@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- dark khaki tile, rounded corners -->
+  <rect x="0" y="0" width="32" height="32" rx="7" fill="#2E2A20"/>
+  <!-- white "L" -->
+  <text x="5" y="24" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">L</text>
+  <!-- dot stack standing in for the ":" / "i" -->
+  <circle cx="22" cy="11" r="3" fill="#4CAF50"/>
+  <circle cx="22" cy="18" r="3" fill="#F5A623"/>
+  <circle cx="22" cy="25" r="3" fill="#E53935"/>
+</svg>

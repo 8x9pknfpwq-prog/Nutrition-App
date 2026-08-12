@@ -1,0 +1,171 @@
+# Codemagic build recipe — NYC Lines iOS (Capacitor)
+#
+# Builds the web app, wraps it with Capacitor for iOS, signs it with your
+# App Store Connect API key, and uploads it to TestFlight. Runs on Codemagic's
+# cloud Macs (Xcode 26), so no local Mac is needed.
+#
+# Before this works you must set up in Codemagic (I'll walk you through each):
+#   • An App Store Connect API key integration (name it exactly: nyc-lines-asc)
+#   • An environment variable group named "nyc_lines_env" containing:
+#       VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN
+#   • The app registered in App Store Connect with bundle id com.nyclines.app
+#
+# Certificate reuse: the "Set up code signing" step below reuses ONE
+# distribution certificate across every build via a stored signing key
+# (secured env var CERT_PRIVATE_KEY). On the very first run that var is empty,
+# so it generates the key + creates the certificate once and prints the key at
+# the end of the step for you to save. See docs/ios-app.md for the copy step.
+# This stops Apple's "you already have 2 certificates" errors.
+#
+# Push notifications are intentionally NOT enabled in this first build (they need
+# extra entitlements + an APNs key). The app still builds and runs; push is a
+# later update.
+
+workflows:
+  ios-testflight:
+    name: NYC Lines iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: nyc-lines-asc
+    environment:
+      # Signing is handled in the "Set up code signing" script below, which
+      # CREATES the certificate + provisioning profile via the API key (needed
+      # because this is a fresh account with none yet). Do not add an
+      # `ios_signing:` block here — that only fetches existing profiles and
+      # fails on a first build.
+      vars:
+        BUNDLE_ID: "com.nyclines.app"
+        XCODE_WORKSPACE: "lineup/ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      groups:
+        - nyc_lines_env   # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_MAPBOX_TOKEN
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install web dependencies
+        script: |
+          cd lineup
+          npm ci
+      - name: Build the web app (Supabase mode, root base)
+        script: |
+          cd lineup
+          VITE_BASE=/ npx vite build
+      - name: Add iOS platform & sync Capacitor
+        script: |
+          cd lineup
+          [ -d ios ] || npx cap add ios
+          npx cap sync ios
+      - name: Generate app icon & splash from brand assets
+        script: |
+          cd lineup
+          # Turns assets/icon-only.png (+ splash.png) into the full iOS AppIcon
+          # set and splash. Without this the build ships the default Capacitor
+          # placeholder icon.
+          npx @capacitor/assets generate --ios
+      - name: Force the bundle identifier on the App target
+        script: |
+          cd lineup/ios/App
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = [^;]*;/PRODUCT_BUNDLE_IDENTIFIER = com.nyclines.app;/g' App.xcodeproj/project.pbxproj
+          echo "Bundle IDs now set to:"
+          grep PRODUCT_BUNDLE_IDENTIFIER App.xcodeproj/project.pbxproj
+      - name: Add Info.plist usage strings
+        script: |
+          PLIST="lineup/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription NYC Lines uses your location to show the nearest bars and center the map." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string NYC Lines uses your location to show the nearest bars and center the map." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :NSContactsUsageDescription NYC Lines checks your contacts to find friends who already use the app. Your contacts are never stored or shared." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string NYC Lines checks your contacts to find friends who already use the app. Your contacts are never stored or shared." "$PLIST"
+      - name: Install CocoaPods dependencies
+        script: |
+          cd lineup/ios/App
+          pod install
+      - name: Set build number
+        script: |
+          cd lineup/ios/App
+          agvtool new-version -all "$(($BUILD_NUMBER))"
+      - name: Set up code signing
+        script: |
+          # Fail the step immediately if any signing command fails, so problems
+          # surface HERE with the real error instead of being masked and turning
+          # into a cryptic "exit 65" at Build IPA.
+          set -eo pipefail
+          keychain initialize
+          # Reuse ONE distribution certificate on every build. A certificate is
+          # tied to a private key; fetch-signing-files reuses the existing cert
+          # that matches the key we pass in, and only creates a new one when no
+          # match exists. The old recipe generated a fresh key each build, so no
+          # cert ever matched and a new one was minted every time (Apple caps
+          # you at 2). Now we keep the key stable via CERT_PRIVATE_KEY.
+          BOOTSTRAP=0
+          if [ -n "${CERT_PRIVATE_KEY:-}" ]; then
+            echo "Found stored signing key — reusing the existing certificate."
+            # Strip ALL whitespace before decoding: valid base64 contains none,
+            # so this harmlessly repairs a value that picked up line-wraps or
+            # stray spaces when copied out of the build log.
+            if ! printf '%s' "$CERT_PRIVATE_KEY" | tr -d '[:space:]' | openssl base64 -A -d > /tmp/cert_key.pem 2>/dev/null; then
+              echo "ERROR: CERT_PRIVATE_KEY could not be base64-decoded."
+              echo "Re-copy the SINGLE line between the BEGIN/END markers from the"
+              echo "bootstrap build log — nothing trimmed from either end."
+              exit 1
+            fi
+            if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+              echo "ERROR: CERT_PRIVATE_KEY decoded but is not a valid RSA key —"
+              echo "the stored value is likely truncated or wrapped. Delete the env"
+              echo "var, re-run to bootstrap a fresh key, and copy the whole line."
+              exit 1
+            fi
+          else
+            echo "No stored signing key — generating one and creating the certificate (one time only)."
+            openssl genrsa -out /tmp/cert_key.pem 2048
+            BOOTSTRAP=1
+          fi
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/cert_key.pem \
+            --create
+          keychain add-certificates
+          security find-identity -v -p codesigning || true
+          ( cd lineup/ios/App && xcode-project use-profiles )
+          # Diagnostic: show where profiles landed (non-fatal) so the log tells us
+          # if signing really completed.
+          echo "Installed provisioning profiles:"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/" 2>/dev/null || true
+          # One-time bootstrap: print the key so you can store it as a SECURED
+          # env var named CERT_PRIVATE_KEY (group nyc_lines_env). After that,
+          # every build reuses this same certificate and never creates another.
+          if [ "$BOOTSTRAP" = "1" ]; then
+            # Write the key to a downloadable ARTIFACT (cert_key.b64) rather than
+            # relying on copying a 2200-char line out of the log viewer, which
+            # truncates/wraps and corrupts the value. Download that artifact, open
+            # it, select-all, and paste into a SECURED env var CERT_PRIVATE_KEY.
+            openssl base64 -A -in /tmp/cert_key.pem > "$CM_BUILD_DIR/cert_key.b64"
+            echo "=================================================================="
+            echo " ONE-TIME SETUP — the signing key was saved as a build ARTIFACT"
+            echo " named 'cert_key.b64'. In this build's Artifacts, DOWNLOAD that"
+            echo " file, open it, select ALL of its contents, and paste them into a"
+            echo " SECURED environment variable CERT_PRIVATE_KEY (group nyc_lines_env)."
+            echo " Then re-run. Do NOT copy the key out of these logs — use the file."
+            echo "=================================================================="
+          fi
+      - name: Build IPA
+        script: |
+          cd lineup/ios/App
+          xcode-project build-ipa --workspace App.xcworkspace --scheme App
+    artifacts:
+      # build-ipa runs inside lineup/ios/App, so the IPA lands there.
+      - lineup/ios/App/build/ios/ipa/*.ipa
+      - "**/*.ipa"
+      - /tmp/xcodebuild_logs/*.log
+      # Only produced on the bootstrap run (when CERT_PRIVATE_KEY is unset):
+      # the signing key to store as the CERT_PRIVATE_KEY env var.
+      - cert_key.b64
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Upload the build only. Internal testers get it automatically once
+        # processed; set this to true (and fill in TestFlight test info) later
+        # when you want to submit to EXTERNAL beta reviewers.
+        submit_to_testflight: false
