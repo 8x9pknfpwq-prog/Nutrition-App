@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import MapView from '../components/MapView.jsx';
 import BottomSheet from '../components/BottomSheet.jsx';
@@ -32,6 +32,7 @@ function milesBetween(a, b) {
 export default function MapDashboard() {
   const socket = useSocket();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   const requireAuth = useRequireAuth();
   const [bars, setBars] = useState([]);
@@ -73,6 +74,18 @@ export default function MapDashboard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep link from a shared "wait card" (SharedBar → navigate('/', {openBar}))
+  // opens that bar's sheet once, so the recipient lands right on it.
+  const openedDeepLink = useRef(false);
+  useEffect(() => {
+    const barId = location.state?.openBar;
+    if (!barId || openedDeepLink.current || loading) return;
+    openedDeepLink.current = true;
+    const found = bars.find((b) => b.id === barId);
+    if (found) setSelected(found);
+    else api.bar(barId).then((d) => d?.bar && setSelected(d.bar)).catch(() => {});
+  }, [location.state, loading, bars]);
 
   // Join the live map room and apply wait_updated events in place.
   useEffect(() => {

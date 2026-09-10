@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Check, Flag } from 'lucide-react';
+import { X, Check, Flag, Share2 } from 'lucide-react';
 import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
 import VenuePhoto from './VenuePhoto.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { useRequireAuth } from '../hooks/useRequireAuth.js';
+import { shareWait } from '../lib/share.js';
 import { waitColor, statusText } from '../lib/wait.js';
 import {
   displayWait, busynessLabel, bestTimeHour, formatHour,
@@ -136,6 +137,15 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
     }
   }
 
+  async function onShare() {
+    // Share the bar's current live/forecast wait — a group-chat-ready card that
+    // links back to this bar. Open to everyone (no auth needed to share).
+    const dw = displayWait(bar);
+    const res = await shareWait(bar, { waitMin: dw.waitMin, closed: dw.closed, isLive: dw.isLive });
+    if (res === 'copied') showToast({ title: 'Link copied', body: 'Paste it into your group chat.' });
+    else if (res === 'unsupported') showToast({ title: 'Couldn’t open share', body: 'Try copying the link from your browser.' });
+  }
+
   async function reportPlace() {
     if (!requireAuth('report a place')) { onClose(); return; }
     if (!window.confirm(`Report ${bar.name} as inappropriate or incorrect? Our team reviews reports within 24 hours.`)) return;
@@ -171,9 +181,18 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
             })()}
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full bg-black/5 p-2 text-gray-500">
-            <X size={18} />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={onShare}
+              aria-label="Share this wait"
+              className="rounded-full bg-black/5 p-2 text-gray-500 active:scale-95 transition-transform"
+            >
+              <Share2 size={18} />
+            </button>
+            <button onClick={onClose} aria-label="Close" className="rounded-full bg-black/5 p-2 text-gray-500">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Dial */}

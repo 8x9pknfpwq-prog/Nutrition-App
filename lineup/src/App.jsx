@@ -14,6 +14,7 @@ import Profile from './pages/Profile.jsx';
 import Admin from './pages/Admin.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Legal from './pages/Legal.jsx';
+import SharedBar from './pages/SharedBar.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 
 // Listens app-wide for friend_checkin events and surfaces them as toasts.
@@ -83,6 +84,9 @@ export default function App() {
             {/* Public, reachable while logged out (linked from the auth screen) */}
             <Route path="/privacy" element={<Legal doc="privacy" />} />
             <Route path="/terms" element={<Legal doc="terms" />} />
+            {/* Shared bar link — the receiving end of a "share this wait" card.
+                Public so a non-user who taps a group-chat link lands on the bar. */}
+            <Route path="/bar/:id" element={<SharedBar />} />
             {/* Everything else flows through the auth gate */}
             <Route path="/*" element={<Gate />} />
           </Routes>
