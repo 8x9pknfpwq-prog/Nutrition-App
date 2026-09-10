@@ -390,7 +390,7 @@ export const demoApi = {
     return { user: publicUser(u) };
   },
   async bars() {
-    const checkins = recentCheckins();
+    const checkins = recentCheckins(60); // friends expire from the map after an hour
     const byBar = new Map();
     for (const c of checkins) {
       const u = userById(c.userId);
@@ -476,7 +476,8 @@ export const demoApi = {
     const ids = acceptedFriendIds(sessionUserId).filter((id) => !blocked.has(id));
     const friends = ids.map((id) => {
       const u = userById(id);
-      const last = recentCheckins(24 * 60).find((n) => n.userId === id);
+      // Friends expire from the map an hour after they check in.
+      const last = recentCheckins(60).find((n) => n.userId === id);
       const bar = last ? db.bars.find((b) => b.id === last.barId) : null;
       return {
         id: u.id, username: u.username, avatarInitial: u.avatarInitial,

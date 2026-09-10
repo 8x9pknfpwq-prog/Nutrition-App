@@ -15,6 +15,10 @@ function apiErr(message, status = 400) {
 }
 
 const since90 = () => new Date(Date.now() - 90 * 60 * 1000).toISOString();
+// How long a friend's check-in keeps them visible "out" on the map. After this
+// they expire from the map (and from their friends' "last seen out" line).
+const PRESENCE_MIN = 60;
+const sincePresence = () => new Date(Date.now() - PRESENCE_MIN * 60 * 1000).toISOString();
 
 const NYC_CENTER = { lat: 40.7282, lng: -73.9942 };
 function milesFromCenter(lat, lng) {
@@ -183,7 +187,7 @@ export const supabaseApi = {
       supabase
         .from('friend_notifications')
         .select('user_id, bar_id, created_at, profiles:user_id(username, avatar_initial)')
-        .gte('created_at', since)
+        .gte('created_at', sincePresence())
         .order('created_at', { ascending: false }),
       // Forecast for the current weekday/hour. Tolerate the view not existing yet
       // (migration 0006 not run) — bars just fall back to the generic prior.
@@ -373,6 +377,7 @@ export const supabaseApi = {
         .from('friend_notifications')
         .select('user_id, created_at, bars:bar_id(id, name, latitude, longitude)')
         .in('user_id', ids)
+        .gte('created_at', sincePresence())
         .order('created_at', { ascending: false }),
     ]);
     const last = {};

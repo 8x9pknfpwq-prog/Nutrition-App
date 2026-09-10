@@ -75,6 +75,16 @@ export default function MapDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Refresh periodically so stale wait times and expired friend check-ins fall
+  // off the map on their own (a friend expires ~1h after checking in), even if
+  // the map is left open. Also refresh when the app returns to the foreground.
+  useEffect(() => {
+    const t = setInterval(() => { load(); }, 3 * 60 * 1000);
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+  }, [load]);
+
   // Deep link from a shared "wait card" (SharedBar → navigate('/', {openBar}))
   // opens that bar's sheet once, so the recipient lands right on it.
   const openedDeepLink = useRef(false);
