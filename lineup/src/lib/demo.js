@@ -466,6 +466,10 @@ export const demoApi = {
     if (!b) throw apiError('Bar not found', 404);
     const report = { id: uid(), barId, userId: sessionUserId, waitMin: Math.round(Number(waitMin)), createdAt: new Date() };
     db.reports.push(report);
+    // Lower barrier: every report earns participation points right away, so it
+    // counts and climbs the leaderboard even without a crowd (mirrors 0017).
+    const me = userById(sessionUserId);
+    if (me) me.trustScore = (me.trustScore ?? 0) + 3;
     const wait = computeWait(reportsForBar(barId));
     demoSocket._dispatch('wait_updated', { barId, waitMin: wait.waitMin, reportCount: wait.reportCount, confidence: wait.confidence });
     return { report: { id: report.id, barId, waitMin: report.waitMin }, wait };
