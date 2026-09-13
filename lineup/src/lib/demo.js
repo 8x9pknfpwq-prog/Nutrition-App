@@ -390,7 +390,7 @@ export const demoApi = {
     return { user: publicUser(u) };
   },
   async bars() {
-    const checkins = recentCheckins();
+    const checkins = recentCheckins(60); // friends expire from the map after an hour
     const byBar = new Map();
     for (const c of checkins) {
       const u = userById(c.userId);
@@ -466,6 +466,10 @@ export const demoApi = {
     if (!b) throw apiError('Bar not found', 404);
     const report = { id: uid(), barId, userId: sessionUserId, waitMin: Math.round(Number(waitMin)), createdAt: new Date() };
     db.reports.push(report);
+    // Lower barrier: every report earns participation points right away, so it
+    // counts and climbs the leaderboard even without a crowd (mirrors 0017).
+    const me = userById(sessionUserId);
+    if (me) me.trustScore = (me.trustScore ?? 0) + 3;
     const wait = computeWait(reportsForBar(barId));
     demoSocket._dispatch('wait_updated', { barId, waitMin: wait.waitMin, reportCount: wait.reportCount, confidence: wait.confidence });
     return { report: { id: report.id, barId, waitMin: report.waitMin }, wait };
@@ -476,7 +480,8 @@ export const demoApi = {
     const ids = acceptedFriendIds(sessionUserId).filter((id) => !blocked.has(id));
     const friends = ids.map((id) => {
       const u = userById(id);
-      const last = recentCheckins(24 * 60).find((n) => n.userId === id);
+      // Friends expire from the map an hour after they check in.
+      const last = recentCheckins(60).find((n) => n.userId === id);
       const bar = last ? db.bars.find((b) => b.id === last.barId) : null;
       return {
         id: u.id, username: u.username, avatarInitial: u.avatarInitial,
