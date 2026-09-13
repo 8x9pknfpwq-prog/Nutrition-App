@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Check, Flag, Share2 } from 'lucide-react';
 import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
@@ -73,15 +73,71 @@ function BestTime({ bar }) {
 }
 
 // Circular wait dial. Fills proportionally to the chosen wait, colored by band.
-function Dial({ value }) {
-  const size = 200;
-  const stroke = 14;
+// Draggable wait dial. Grab anywhere on the ring (or the thumb) and swing around
+// to set the wait; the value snaps to 5-min steps. A full turn = 90+ min.
+function Dial({ value, onChange }) {
+  const size = 216;
+  const stroke = 16;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(value / MAX, 1);
   const color = waitColor(value);
+  const ref = useRef(null);
+  const dragging = useRef(false);
+  const [active, setActive] = useState(false);
+
+  // Map a screen point to a wait value by its angle clockwise from 12 o'clock.
+  const setFromPoint = useCallback(
+    (clientX, clientY) => {
+      const el = ref.current;
+      if (!el || !onChange) return;
+      const rect = el.getBoundingClientRect();
+      const dx = clientX - (rect.left + rect.width / 2);
+      const dy = clientY - (rect.top + rect.height / 2);
+      let a = Math.atan2(dx, -dy); // radians, clockwise from top
+      if (a < 0) a += 2 * Math.PI;
+      const v = Math.round(((a / (2 * Math.PI)) * MAX) / 5) * 5;
+      onChange(Math.max(0, Math.min(MAX, v)));
+    },
+    [onChange]
+  );
+
+  function down(e) {
+    dragging.current = true;
+    setActive(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setFromPoint(e.clientX, e.clientY);
+  }
+  function move(e) {
+    if (dragging.current) setFromPoint(e.clientX, e.clientY);
+  }
+  function up(e) {
+    dragging.current = false;
+    setActive(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }
+
+  // Thumb sits on the ring at the current angle (clockwise from top).
+  const ang = pct * 2 * Math.PI;
+  const tx = size / 2 + r * Math.sin(ang);
+  const ty = size / 2 - r * Math.cos(ang);
+
   return (
-    <svg width={size} height={size} className="-rotate-90">
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+      role="slider"
+      aria-label="Wait time in minutes"
+      aria-valuemin={0}
+      aria-valuemax={MAX}
+      aria-valuenow={value}
+      style={{ touchAction: 'none', cursor: 'pointer', userSelect: 'none' }}
+    >
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E8E6E0" strokeWidth={stroke} />
       <circle
         cx={size / 2}
@@ -93,16 +149,25 @@ function Dial({ value }) {
         strokeLinecap="round"
         strokeDasharray={circ}
         strokeDashoffset={circ * (1 - pct)}
-        style={{ transition: 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: active ? 'none' : 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
       />
-      <g className="rotate-90" style={{ transformOrigin: 'center' }}>
-        <text x="50%" y="46%" textAnchor="middle" className="wait-time fill-ink font-bold" style={{ fontSize: 46 }}>
-          {value >= MAX ? '90+' : value}
-        </text>
-        <text x="50%" y="60%" textAnchor="middle" className="fill-gray-400 font-semibold" style={{ fontSize: 12, letterSpacing: 1 }}>
-          MIN LINE
-        </text>
-      </g>
+      {/* Draggable thumb */}
+      <circle
+        cx={tx}
+        cy={ty}
+        r={stroke / 2 + 5}
+        fill="#fff"
+        stroke={color}
+        strokeWidth={3}
+        style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.22))' }}
+      />
+      <text x="50%" y="46%" textAnchor="middle" className="wait-time fill-ink font-bold" style={{ fontSize: 48 }}>
+        {value >= MAX ? '90+' : value}
+      </text>
+      <text x="50%" y="60%" textAnchor="middle" className="fill-gray-400 font-semibold" style={{ fontSize: 11, letterSpacing: 1.5 }}>
+        MIN LINE
+      </text>
     </svg>
   );
 }
@@ -217,10 +282,11 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
 
         {/* Dial */}
         <div className="mt-4 flex flex-col items-center">
-          <Dial value={value} />
+          <Dial value={value} onChange={setValue} />
           <span className="mt-2 text-sm font-bold tracking-wide" style={{ color: statusColor }}>
             {status}
           </span>
+          <span className="mt-0.5 text-xs text-gray-400">Drag the dial to set the wait</span>
         </div>
 
         {/* Slider */}
