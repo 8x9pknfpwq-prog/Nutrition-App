@@ -38,6 +38,10 @@ workflows:
         BUNDLE_ID: "com.nyclines.app"
         XCODE_WORKSPACE: "lineup/ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+        # App Store marketing version (CFBundleShortVersionString). Apple requires
+        # this to INCREASE for every new App Store version — bump it each release
+        # (1.1 -> 1.2 -> ...). The build number below auto-increments on its own.
+        APP_VERSION: "1.1"
       groups:
         - nyc_lines_env   # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_MAPBOX_TOKEN
       node: 20
@@ -81,9 +85,12 @@ workflows:
         script: |
           cd lineup/ios/App
           pod install
-      - name: Set build number
+      - name: Set version & build number
         script: |
           cd lineup/ios/App
+          # Marketing version must be higher than any previously accepted App Store
+          # version (Apple rejects a re-used 1.0). Build number auto-increments.
+          agvtool new-marketing-version "$APP_VERSION"
           agvtool new-version -all "$(($BUILD_NUMBER))"
       - name: Set up code signing
         script: |
