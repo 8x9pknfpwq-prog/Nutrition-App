@@ -4,8 +4,11 @@ import Avatar from './Avatar.jsx';
 import { api } from '../lib/api.js';
 import VenuePhoto from './VenuePhoto.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useRequireAuth } from '../hooks/useRequireAuth.js';
 import { shareWait } from '../lib/share.js';
+import { getCurrentPosition, metersBetween, CHECKIN_RADIUS_M } from '../lib/geo.js';
+import { IS_DEMO } from '../lib/mode.js';
 import { waitColor, statusText } from '../lib/wait.js';
 import {
   displayWait, busynessLabel, bestTimeHour, formatHour,
@@ -106,6 +109,7 @@ function Dial({ value }) {
 
 export default function CheckInSheet({ bar, onClose, onSubmitted }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const requireAuth = useRequireAuth();
   const [value, setValue] = useState(bar.waitMin ?? displayWait(bar).waitMin ?? 15);
   const [share, setShare] = useState(true);
@@ -121,6 +125,22 @@ export default function CheckInSheet({ bar, onClose, onSubmitted }) {
 
   async function submit() {
     if (!requireAuth('check in')) { onClose(); return; }
+    // You must be at the venue to report its line — this is what makes a single
+    // report trustworthy without needing a crowd. Skipped in the demo showcase,
+    // and for admins so they can test from anywhere.
+    if (!IS_DEMO && !user?.isAdmin) {
+      let loc;
+      try {
+        loc = await getCurrentPosition();
+      } catch {
+        showToast({ title: 'Turn on location to check in', body: `We confirm you’re at ${bar.name} so reports stay real.` });
+        return;
+      }
+      if (metersBetween(loc, bar) > CHECKIN_RADIUS_M) {
+        showToast({ title: 'Get a little closer', body: `You have to be at ${bar.name} to report its line.` });
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       await api.report({ barId: bar.id, waitMin: value });

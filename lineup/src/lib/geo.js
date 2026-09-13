@@ -4,6 +4,24 @@
 // to navigator.geolocation. Returns { latitude, longitude } or throws.
 import { isNative } from './native.js';
 
+// You must be within this many meters of a venue to report its line. Generous
+// enough for GPS drift in dense NYC (bounce off buildings) and for standing in
+// a line down the block, tight enough to stop couch reports.
+export const CHECKIN_RADIUS_M = 250;
+
+// Great-circle distance in meters between two { latitude, longitude } points.
+export function metersBetween(a, b) {
+  if (!a || !b || a.latitude == null || b.latitude == null) return Infinity;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 6371000; // Earth radius, meters
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
 export async function getCurrentPosition({ timeout = 8000 } = {}) {
   if (isNative()) {
     const { Geolocation } = await import('@capacitor/geolocation');
