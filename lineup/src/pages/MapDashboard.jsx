@@ -16,6 +16,13 @@ import { getCurrentPosition } from '../lib/geo.js';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { useRequireAuth } from '../hooks/useRequireAuth.js';
+import NearbyCheckinPrompt from '../components/NearbyCheckinPrompt.jsx';
+import InviteFriendPrompt from '../components/InviteFriendPrompt.jsx';
+import {
+  bumpAppOpens, hasReported, markReported,
+  nearbyShownThisSession, markNearbyShown,
+  inviteShownToday, markInviteShown,
+} from '../lib/engagement.js';
 
 // Great-circle distance in miles between the user and a bar.
 function milesBetween(a, b) {
@@ -48,6 +55,13 @@ export default function MapDashboard() {
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Engagement prompts (see lib/engagement.js for the don't-nag gating).
+  const [engagePrompt, setEngagePrompt] = useState(null); // null | 'nearby' | 'invite'
+  const [nearbyBar, setNearbyBar] = useState(null);
+  const engageDecided = useRef(false);
+  const promptTimer = useRef(null);
+  useEffect(() => () => clearTimeout(promptTimer.current), []);
+
   // Center the map on the user. manual=true surfaces errors (button press);
   // the silent attempt on load won't nag if permission isn't granted.
   const locate = useCallback(
@@ -74,6 +88,45 @@ export default function MapDashboard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // After a successful report: refresh, remember it, and nudge first-timers to
+  // invite a friend (at most once/day, after the check-in sheet closes).
+  const onReported = useCallback(() => {
+    load();
+    const firstEver = !hasReported();
+    markReported();
+    if (firstEver && !inviteShownToday()) {
+      markInviteShown();
+      clearTimeout(promptTimer.current);
+      promptTimer.current = setTimeout(() => setEngagePrompt('invite'), 700);
+    }
+  }, [load]);
+
+  // One engagement prompt per app open, decided once bars are loaded.
+  useEffect(() => {
+    if (engageDecided.current || loading || bars.length === 0) return;
+    engageDecided.current = true;
+    const opens = bumpAppOpens();
+    // Returning users (2nd+ open) or anyone who's reported before → invite nudge.
+    if ((hasReported() || opens >= 2) && !inviteShownToday()) {
+      markInviteShown();
+      promptTimer.current = setTimeout(() => setEngagePrompt('invite'), 1200);
+      return;
+    }
+    // Otherwise, a once-per-session "what's the vibe near you" nudge.
+    if (!nearbyShownThisSession()) {
+      const pool = bars.filter((b) => (b.venueType || 'bar') === 'bar');
+      const list = pool.length ? pool : bars;
+      const target = userLocation
+        ? list.map((b) => ({ b, d: milesBetween(userLocation, b) })).sort((a, c) => a.d - c.d)[0]?.b
+        : list[0];
+      if (target) {
+        markNearbyShown();
+        setNearbyBar(target);
+        promptTimer.current = setTimeout(() => setEngagePrompt('nearby'), 1200);
+      }
+    }
+  }, [loading, bars, userLocation]);
 
   // Refresh periodically so stale wait times and expired friend check-ins fall
   // off the map on their own (a friend expires ~1h after checking in), even if
@@ -281,12 +334,24 @@ export default function MapDashboard() {
         <CheckInSheet
           bar={selected}
           onClose={() => setSelected(null)}
-          onSubmitted={load}
+          onSubmitted={onReported}
         />
       )}
 
       {/* Add-a-place sheet */}
       {adding && <AddPlaceSheet venueType={mode} onClose={() => setAdding(false)} onAdded={load} />}
+
+      {/* Engagement prompts — never shown over an open sheet. */}
+      {engagePrompt === 'nearby' && nearbyBar && !selected && !adding && (
+        <NearbyCheckinPrompt
+          bar={nearbyBar}
+          onReport={() => { setEngagePrompt(null); setSelected(nearbyBar); }}
+          onDismiss={() => setEngagePrompt(null)}
+        />
+      )}
+      {engagePrompt === 'invite' && !selected && !adding && (
+        <InviteFriendPrompt onDismiss={() => setEngagePrompt(null)} />
+      )}
     </div>
   );
 }
