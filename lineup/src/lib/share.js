@@ -7,12 +7,12 @@
 // bar's live page (see pages/SharedBar.jsx). Non-users who tap the link land on
 // that page and can jump straight into the map.
 import { renderWaitCardBlob } from './shareCard.js';
+import { APP_STORE_URL } from './invite.js';
 
-// The public, shareable deep link to a bar. Uses the app's base URL + hash
-// route so it resolves on static hosts (GitHub Pages) and in the native shell.
-export function shareUrlForBar(bar) {
-  const base = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`;
-  return `${base}#/bar/${bar.id}`;
+// The link that travels with a shared wait — the App Store page, so recipients
+// download the app. (The bar + current wait ride along in the share text.)
+export function shareUrlForBar() {
+  return APP_STORE_URL;
 }
 
 function waitEmoji(waitMin, closed) {
@@ -38,7 +38,7 @@ function shareLine(bar, { waitMin, closed, isLive }) {
 //   3. copy the link to the clipboard.
 // Returns 'shared' | 'copied' | 'cancelled' | 'unsupported'.
 export async function shareWait(bar, wait) {
-  const url = shareUrlForBar(bar);
+  const url = shareUrlForBar();
   const line = shareLine(bar, wait);
   const title = `${bar.name} · NYC Lines`;
 
@@ -52,7 +52,7 @@ export async function shareWait(bar, wait) {
           await navigator.share({
             files: [file],
             title,
-            text: `${line}\n\nSee it live: ${url}`,
+            text: `${line}\n\nGet NYC Lines: ${url}`,
           });
           return 'shared';
         }
@@ -66,7 +66,7 @@ export async function shareWait(bar, wait) {
   // 2) Text + link share.
   try {
     if (typeof navigator !== 'undefined' && navigator.share) {
-      await navigator.share({ title, text: `${line}\n\nLive on NYC Lines 👇`, url });
+      await navigator.share({ title, text: `${line}\n\nGet it on NYC Lines 👇`, url });
       return 'shared';
     }
   } catch (e) {

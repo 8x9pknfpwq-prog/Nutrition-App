@@ -1,8 +1,10 @@
 // Invite someone to NYC Lines via the OS share sheet, falling back to copying
 // the link if Web Share isn't available (e.g. desktop browsers).
 
-// Where invites point. Swap to the App Store URL once the app is live.
-export const INVITE_URL = 'https://8x9pknfpwq-prog.github.io/Nutrition-App/';
+// The public App Store page — where every invite/share link sends people to
+// download the app. (Active once the app is released on the App Store.)
+export const APP_STORE_URL = 'https://apps.apple.com/app/id6793991040';
+export const INVITE_URL = APP_STORE_URL;
 const INVITE_TEXT = 'Come see live bar wait times in NYC with me on NYC Lines:';
 
 // Returns 'shared' | 'copied'. Throws only on unexpected failures (a user
